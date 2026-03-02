@@ -4,6 +4,14 @@
  * These map to the tools exposed by https://mcp.granola.ai/mcp
  */
 
+// --- Folder ---
+
+export interface Folder {
+  id: string;       // pattern: ^fol_[a-zA-Z0-9]{14}$
+  name: string;
+  object: "folder";
+}
+
 // --- list_meetings ---
 
 export interface Meeting {
@@ -14,6 +22,7 @@ export interface Meeting {
   attendees?: Attendee[];
   summary?: string;
   url?: string;
+  folder_membership?: Folder[];
   [key: string]: unknown;
 }
 
@@ -28,6 +37,7 @@ export interface ListMeetingsParams {
   until?: string;
   attendee?: string;
   limit?: number;
+  folder?: string;  // client-side filter by folder name or ID
 }
 
 // --- get_meetings ---

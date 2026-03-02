@@ -11,6 +11,7 @@ export interface MockMeetingData {
   start_time: string;
   attendees: Array<{ name: string; email: string }>;
   summary?: string;
+  folder_membership?: Array<{ id: string; name: string; object: "folder" }>;
 }
 
 export const MOCK_MEETINGS: MockMeetingData[] = [
@@ -23,6 +24,9 @@ export const MOCK_MEETINGS: MockMeetingData[] = [
       { name: "Bob Jones", email: "bob@example.com" },
     ],
     summary: "Discussed Q1 roadmap and priorities.",
+    folder_membership: [
+      { id: "fol_AbCdEfGhIjKlMn", name: "Planning", object: "folder" as const },
+    ],
   },
   {
     id: "meeting-002",

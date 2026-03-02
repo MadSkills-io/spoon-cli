@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { resolveFormat, resolveQueryFormat } from "../../src/output/formatter.js";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { resolveFormat, resolveQueryFormat, output } from "../../src/output/formatter.js";
 
 // Mock isTTY
 vi.mock("../../src/utils/tty.js", () => ({
@@ -72,6 +72,86 @@ describe("Output Formatter", () => {
     it("respects explicit format override", () => {
       mockIsTTY = true;
       expect(resolveQueryFormat("json")).toBe("json");
+    });
+  });
+
+  describe("output() with folder_membership", () => {
+    let logSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      logSpy.mockRestore();
+    });
+
+    it("includes folder_membership in JSON output", () => {
+      const meeting = {
+        id: "meeting-001",
+        title: "Planning",
+        folder_membership: [
+          { id: "fol_AbCdEfGhIjKlMn", name: "Planning", object: "folder" },
+        ],
+      };
+
+      output(meeting, "json");
+      const printed = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(printed).toContain("folder_membership");
+      expect(printed).toContain("Planning");
+    });
+
+    it("shows folder in text output when folder_membership present", () => {
+      const meeting = {
+        id: "meeting-001",
+        title: "Planning",
+        folder_membership: [
+          { id: "fol_AbCdEfGhIjKlMn", name: "My Folder", object: "folder" },
+        ],
+      };
+
+      output(meeting, "text");
+      const printed = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(printed).toContain("Folder:");
+      expect(printed).toContain("My Folder");
+    });
+
+    it("omits folder line in text output when folder_membership absent", () => {
+      const meeting = {
+        id: "meeting-001",
+        title: "Planning",
+      };
+
+      output(meeting, "text");
+      const printed = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(printed).not.toContain("Folder:");
+    });
+
+    it("omits folder line in text output when folder_membership is empty", () => {
+      const meeting = {
+        id: "meeting-001",
+        title: "Planning",
+        folder_membership: [],
+      };
+
+      output(meeting, "text");
+      const printed = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(printed).not.toContain("Folder:");
+    });
+
+    it("joins multiple folder names with comma in text output", () => {
+      const meeting = {
+        id: "meeting-001",
+        title: "Planning",
+        folder_membership: [
+          { id: "fol_Aaaa", name: "Folder A", object: "folder" },
+          { id: "fol_Bbbb", name: "Folder B", object: "folder" },
+        ],
+      };
+
+      output(meeting, "text");
+      const printed = logSpy.mock.calls.map((c) => c[0]).join("\n");
+      expect(printed).toContain("Folder A, Folder B");
     });
   });
 });

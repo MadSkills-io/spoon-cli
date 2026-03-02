@@ -7,6 +7,7 @@ import type {
   GetMeetingParams,
   GetTranscriptParams,
   QueryParams,
+  Meeting,
 } from "./types.js";
 
 const GRANOLA_MCP_URL = "https://mcp.granola.ai/mcp";
@@ -179,13 +180,23 @@ export class McpClient {
   // --- High-level tool wrappers ---
 
   async listMeetings(params: ListMeetingsParams = {}): Promise<unknown> {
-    const args: Record<string, unknown> = {};
-    if (params.since) args["since"] = params.since;
-    if (params.until) args["until"] = params.until;
-    if (params.attendee) args["attendee"] = params.attendee;
-    if (params.limit !== undefined) args["limit"] = params.limit;
+    // Strip folder — it's a client-side filter, not sent to the MCP server
+    const { folder, ...serverParams } = params;
 
-    return this.callTool("list_meetings", args, TIMEOUT_LIST);
+    const args: Record<string, unknown> = {};
+    if (serverParams.since) args["since"] = serverParams.since;
+    if (serverParams.until) args["until"] = serverParams.until;
+    if (serverParams.attendee) args["attendee"] = serverParams.attendee;
+    if (serverParams.limit !== undefined) args["limit"] = serverParams.limit;
+
+    const result = await this.callTool("list_meetings", args, TIMEOUT_LIST);
+
+    // Apply client-side folder filter if requested
+    if (folder && Array.isArray(result)) {
+      return filterByFolder(result as Meeting[], folder);
+    }
+
+    return result;
   }
 
   async getMeetings(params: GetMeetingParams): Promise<unknown> {
@@ -209,6 +220,24 @@ export class McpClient {
   async query(params: QueryParams): Promise<unknown> {
     return this.callTool("query_granola_meetings", { query: params.query }, TIMEOUT_QUERY);
   }
+}
+
+// --- Client-side filters ---
+
+/**
+ * Filter meetings by folder name or folder ID (case-insensitive).
+ */
+function filterByFolder(meetings: Meeting[], folder: string): Meeting[] {
+  const normalized = folder.trim().toLowerCase();
+  return meetings.filter((m) => {
+    const memberships = m.folder_membership;
+    if (!Array.isArray(memberships) || memberships.length === 0) return false;
+    return memberships.some(
+      (f) =>
+        f.id.toLowerCase() === normalized ||
+        f.name.toLowerCase() === normalized
+    );
+  });
 }
 
 // --- Error helpers ---

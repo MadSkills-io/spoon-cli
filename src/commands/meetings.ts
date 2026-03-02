@@ -16,6 +16,7 @@ export function registerMeetingsCommand(program: Command): void {
     .option("--since <date>", "Show meetings since date (ISO 8601 or natural language)")
     .option("--until <date>", "Show meetings until date (ISO 8601 or natural language)")
     .option("--attendee <name>", "Filter by attendee name or email")
+    .option("--folder <name>", "Filter by folder name or ID (client-side)")
     .option("--limit <n>", "Maximum number of meetings to return", "20")
     .option("--format <format>", "Output format: json, table, csv, markdown, text")
     .addHelpText("after", `
@@ -24,12 +25,15 @@ Examples:
   $ granola meetings list --since "last week"
   $ granola meetings list --since 2024-01-01 --until 2024-02-01
   $ granola meetings list --attendee "Sarah" --limit 5
+  $ granola meetings list --folder "Planning"
+  $ granola meetings list --folder "Planning" --since "last week"
   $ granola meetings list --format json | jq '.[].title'
   $ granola meetings list --since "2 days ago" --format csv`)
     .action(async (options: {
       since?: string;
       until?: string;
       attendee?: string;
+      folder?: string;
       limit?: string;
       format?: string;
     }) => {
@@ -57,6 +61,10 @@ Examples:
 
         if (options.attendee) {
           params.attendee = options.attendee;
+        }
+
+        if (options.folder) {
+          params.folder = options.folder;
         }
 
         if (options.limit) {

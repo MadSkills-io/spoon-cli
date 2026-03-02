@@ -222,6 +222,14 @@ function outputSingleText(item: unknown): void {
     console.log(`  ${chalk.cyan("With:")} ${names}`);
   }
 
+  // Show folders
+  if (Array.isArray(record["folder_membership"]) && record["folder_membership"].length > 0) {
+    const folderNames = (record["folder_membership"] as Array<{ name: string }>)
+      .map((f) => f.name)
+      .join(", ");
+    console.log(`  ${chalk.cyan("Folder:")} ${folderNames}`);
+  }
+
   // Show summary or notes
   for (const key of ["summary", "answer", "notes", "enhanced_notes"]) {
     if (record[key] && typeof record[key] === "string") {
@@ -242,7 +250,7 @@ function getDisplayColumns(item: Record<string, unknown>): TableColumn[] {
   const columns: TableColumn[] = [];
 
   // Prioritize common fields
-  const priorityKeys = ["id", "title", "start_time", "end_time", "attendees", "summary"];
+  const priorityKeys = ["id", "title", "start_time", "end_time", "attendees", "folder_membership", "summary"];
   const allKeys = Object.keys(item);
   const orderedKeys = [
     ...priorityKeys.filter((k) => allKeys.includes(k)),
@@ -257,16 +265,18 @@ function getDisplayColumns(item: Record<string, unknown>): TableColumn[] {
 
     columns.push({
       key,
-      header: humanizeKey(key),
+      header: key === "folder_membership" ? "Folders" : humanizeKey(key),
       format: key.includes("time") || key.includes("_at")
         ? (v) => formatDate(v as string)
         : key === "attendees"
           ? (v) => formatAttendees(v)
-          : (v) => formatValue(v),
+          : key === "folder_membership"
+            ? (v) => formatFolders(v)
+            : (v) => formatValue(v),
     });
 
-    // Limit to 6 columns for readability
-    if (columns.length >= 6) break;
+    // Limit to 7 columns for readability
+    if (columns.length >= 7) break;
   }
 
   return columns;
@@ -282,6 +292,13 @@ function formatAttendees(value: unknown): string {
   if (!Array.isArray(value)) return String(value ?? "");
   return (value as Array<{ name?: string; email?: string }>)
     .map((a) => a.name || a.email || "?")
+    .join(", ");
+}
+
+function formatFolders(value: unknown): string {
+  if (!Array.isArray(value)) return String(value ?? "");
+  return (value as Array<{ name?: string; id?: string }>)
+    .map((f) => f.name || f.id || "?")
     .join(", ");
 }
 

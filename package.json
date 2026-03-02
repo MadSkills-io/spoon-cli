@@ -1,0 +1,62 @@
+{
+  "name": "granola-cli",
+  "version": "0.1.0",
+  "description": "CLI for querying Granola AI meeting notes via Granola's MCP server",
+  "type": "module",
+  "bin": {
+    "granola": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm run build"
+  },
+  "keywords": [
+    "granola",
+    "meetings",
+    "mcp",
+    "cli",
+    "ai",
+    "notes"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/granola-cli/granola-cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "chalk": "^5.4.1",
+    "chrono-node": "^2.7.7",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
+    "open": "^10.1.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "eslint": "^9.21.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.7"
+  }
+}

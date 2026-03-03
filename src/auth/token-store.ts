@@ -17,6 +17,9 @@ export interface StoredClientInfo {
   client_secret?: string;
   client_id_issued_at?: number;
   client_secret_expires_at?: number;
+  /** Issuer URL of the auth server that issued this client_id.
+   *  Used to detect auth server migrations and invalidate stale registrations. */
+  issuer?: string;
 }
 
 const GRANOLA_DIR = join(homedir(), ".spoon");

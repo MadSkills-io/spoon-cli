@@ -68,9 +68,19 @@ export async function registerClient(
   metadata: AuthServerMetadata,
   redirectUri: string
 ): Promise<StoredClientInfo> {
-  // Check cache first
+  // Use cached registration only if it was issued by the same auth server.
+  // If the issuer has changed (e.g. mcp.granola.ai → mcp-auth.granola.ai)
+  // the old client_id is invalid and we must re-register.
   const cached = loadClientInfo();
-  if (cached) return cached;
+  if (cached) {
+    const cachedIssuer = cached.issuer ?? "";
+    const currentIssuer = metadata.issuer ?? new URL(metadata.token_endpoint).origin;
+    if (!cachedIssuer || cachedIssuer === currentIssuer) {
+      return cached;
+    }
+    // Issuer mismatch — clear stale registration and re-register
+    saveClientInfo(null as unknown as StoredClientInfo); // will be overwritten below
+  }
 
   const endpoint = metadata.registration_endpoint ?? DEFAULT_ENDPOINTS.registration_endpoint;
 
@@ -98,6 +108,8 @@ export async function registerClient(
   }
 
   const info = (await res.json()) as StoredClientInfo;
+  // Store the issuer so we can detect auth server migrations on future logins.
+  info.issuer = metadata.issuer ?? new URL(metadata.token_endpoint).origin;
   saveClientInfo(info);
   return info;
 }
@@ -289,7 +301,7 @@ export async function getAccessToken(): Promise<string> {
 
   const tokens = loadTokens();
   if (!tokens?.access_token) {
-    throw new AuthError("Not authenticated. Run: granola auth login");
+    throw new AuthError("Not authenticated. Run: spoon auth login");
   }
 
   // Auto-refresh if expired or expiring within 5 minutes

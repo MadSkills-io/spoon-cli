@@ -11,6 +11,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.4] — 2026-03-03
+
+### Fixed
+- **Auth broken** — Granola's auth server migrated from `mcp.granola.ai` to `mcp-auth.granola.ai`. The cached `client.json` contained a `client_id` registered against the old server, causing "invalid redirect URI" errors on login.
+- **Stale client registration detection** — `registerClient()` now stores the issuer URL alongside the `client_id` in `~/.spoon/client.json`. On each login, if the discovered issuer doesn't match the stored one, the stale registration is discarded and a fresh DCR is performed against the current auth server. This prevents silent breakage if the auth server moves again.
+- Fixed stale `granola auth login` error message → `spoon auth login`.
+
+### Immediate fix
+If you see "invalid redirect URI" on login, delete `~/.spoon/client.json` and run `spoon auth login` again. Future logins will re-register automatically when the auth server changes.
+
+---
+
 ## [0.2.3] — 2026-03-03
 
 ### Fixed
@@ -90,7 +102,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.0...v0.2.1

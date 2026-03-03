@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import chalk from "chalk";
+import cliProgress from "cli-progress";
 import { resolve } from "node:path";
 import { getMcpClient, closeMcpClient } from "../mcp/client.js";
 import type { Meeting, MeetingDetail, TranscriptSegment } from "../mcp/types.js";
@@ -40,12 +41,12 @@ export function registerSyncCommand(program: Command): void {
     .option("--format <fmt>", "Progress output format: text, json")
     .addHelpText("after", `
 Examples:
-  $ granola sync ./meetings
-  $ granola sync ./meetings --since "last week"
-  $ granola sync ./meetings --force
-  $ granola sync ./meetings --dry-run
-  $ granola sync ./meetings --no-transcripts --delay 500
-  $ granola sync ~/granola-backup --batch-size 10`)
+  $ spoon sync ./meetings
+  $ spoon sync ./meetings --since "last week"
+  $ spoon sync ./meetings --force
+  $ spoon sync ./meetings --dry-run
+  $ spoon sync ./meetings --no-transcripts --delay 500
+  $ spoon sync ~/spoon-backup --batch-size 10`)
     .action(async (outputDirArg: string, options: SyncOptions) => {
       try {
         await runSync(outputDirArg, options);
@@ -65,6 +66,7 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
   const dryRun = options.dryRun === true;
   const force = options.force === true;
   const useJson = options.format === "json";
+  const useTTY = isTTY() && !useJson;
 
   // 1. Load sync state and determine `since` date
   const state = loadSyncState();
@@ -81,7 +83,7 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
     since = state.lastSyncAt;
   }
 
-  logProgress(useJson, `Syncing meetings${since ? ` since ${since}` : " (all time)"}...`);
+  logLine(useJson, `Syncing meetings${since ? ` since ${since}` : " (all time)"}...`);
 
   // 2. List meetings
   const client = getMcpClient();
@@ -98,78 +100,105 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
     : allMeetings.filter((m) => !state.syncedMeetings[m.id]);
 
   if (meetingsToSync.length === 0) {
-    logProgress(useJson, "No new meetings to sync.");
+    logLine(useJson, "No new meetings to sync.");
     return;
   }
 
-  logProgress(useJson, `Found ${meetingsToSync.length} meeting(s) to sync.`);
+  logLine(useJson, `Found ${meetingsToSync.length} meeting(s) to sync.`);
 
   if (dryRun) {
     printDryRun(meetingsToSync, outputDir, useJson);
     return;
   }
 
-  // 4. Process in batches
+  // 4. Process in batches, with a progress bar in TTY mode
   const updatedSyncedMeetings = { ...state.syncedMeetings };
   let syncedCount = 0;
   const total = meetingsToSync.length;
 
-  for (let i = 0; i < meetingsToSync.length; i += batchSize) {
-    const batch = meetingsToSync.slice(i, i + batchSize);
-    const batchIds = batch.map((m) => m.id);
+  // Steps = one per meeting (detail) + one per transcript fetch (if enabled)
+  const totalSteps = total * (includeTranscripts ? 2 : 1);
 
-    // Fetch full meeting details
-    const detailResult = await withRetry(
-      () => client.getMeetings({
-        meeting_ids: batchIds,
-        include_private_notes: includePrivate,
-        include_enhanced_notes: true,
-      }),
-      { baseDelayMs: 1000 },
-    );
+  const bar = useTTY
+    ? new cliProgress.SingleBar(
+        {
+          format: `${chalk.cyan("Syncing")} [{bar}] {percentage}% | {value}/{total} | {currentTitle}`,
+          barCompleteChar: "█",
+          barIncompleteChar: "░",
+          clearOnComplete: false,
+          hideCursor: true,
+        },
+        cliProgress.Presets.shades_classic,
+      )
+    : null;
 
-    await sleep(delayMs);
+  bar?.start(totalSteps, 0, { currentTitle: "starting…" });
 
-    const details = (Array.isArray(detailResult) ? detailResult : []) as MeetingDetail[];
+  try {
+    for (let i = 0; i < meetingsToSync.length; i += batchSize) {
+      const batch = meetingsToSync.slice(i, i + batchSize);
+      const batchIds = batch.map((m) => m.id);
 
-    for (const detail of details) {
-      syncedCount++;
-      const dir = getMeetingDir(outputDir, detail);
-      const meetingPath = writeMeetingFile(dir, detail, { includePrivate });
-      const relativePath = meetingPath.replace(outputDir + "/", "");
-
-      logProgress(
-        useJson,
-        `[${syncedCount}/${total}] ${detail.title || detail.id} → ${relativePath}`,
+      // Fetch full meeting details
+      const detailResult = await withRetry(
+        () => client.getMeetings({
+          meeting_ids: batchIds,
+          include_private_notes: includePrivate,
+          include_enhanced_notes: true,
+        }),
+        { baseDelayMs: 1000 },
       );
 
-      // Fetch transcript
-      if (includeTranscripts) {
-        try {
-          const transcriptResult = await withRetry(
-            () => client.getTranscript({ meeting_id: detail.id }),
-            { baseDelayMs: 1000 },
-          );
+      await sleep(delayMs);
 
-          await sleep(delayMs);
+      const details = (Array.isArray(detailResult) ? detailResult : []) as MeetingDetail[];
 
-          const segments = normalizeTranscriptResult(transcriptResult);
-          if (segments.length > 0) {
-            writeTranscriptFile(dir, detail, segments);
+      for (const detail of details) {
+        syncedCount++;
+        const dir = getMeetingDir(outputDir, detail);
+        const meetingPath = writeMeetingFile(dir, detail, { includePrivate });
+        const relativePath = meetingPath.replace(outputDir + "/", "");
+        const title = detail.title || detail.id;
+
+        bar?.update(syncedCount * (includeTranscripts ? 2 : 1) - (includeTranscripts ? 1 : 0), {
+          currentTitle: title,
+        });
+        logLine(useJson, `[${syncedCount}/${total}] ${title} → ${relativePath}`);
+
+        // Fetch transcript
+        if (includeTranscripts) {
+          try {
+            const transcriptResult = await withRetry(
+              () => client.getTranscript({ meeting_id: detail.id }),
+              { baseDelayMs: 1000 },
+            );
+
+            await sleep(delayMs);
+
+            const segments = normalizeTranscriptResult(transcriptResult);
+            if (segments.length > 0) {
+              writeTranscriptFile(dir, detail, segments);
+            }
+          } catch (err) {
+            // Transcript failures should not abort the sync
+            const msg = err instanceof Error ? err.message : String(err);
+            bar?.stop();
+            writeError(
+              `Could not fetch transcript for "${title}": ${msg}`,
+              EXIT_ERROR,
+            );
+            bar?.start(totalSteps, syncedCount * 2, { currentTitle: title });
           }
-        } catch (err) {
-          // Transcript failures should not abort the sync
-          const msg = err instanceof Error ? err.message : String(err);
-          writeError(
-            `Could not fetch transcript for "${detail.title || detail.id}": ${msg}`,
-            EXIT_ERROR,
-          );
-        }
-      }
 
-      // Mark as synced
-      updatedSyncedMeetings[detail.id] = new Date().toISOString();
+          bar?.update(syncedCount * 2, { currentTitle: title });
+        }
+
+        // Mark as synced
+        updatedSyncedMeetings[detail.id] = new Date().toISOString();
+      }
     }
+  } finally {
+    bar?.stop();
   }
 
   // 5. Persist sync state
@@ -179,7 +208,12 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
   };
   saveSyncState(newState);
 
-  logProgress(useJson, `✓ Synced ${syncedCount} meeting(s) to ${outputDir}`);
+  const summary = `✓ Synced ${syncedCount} meeting(s) to ${outputDir}`;
+  if (useTTY) {
+    process.stderr.write(chalk.green(summary) + "\n");
+  } else {
+    logLine(useJson, summary);
+  }
 }
 
 // --- Helpers ---
@@ -190,16 +224,21 @@ function parsePosInt(value: string | undefined, fallback: number): number {
   return !isNaN(n) && n > 0 ? n : fallback;
 }
 
-function logProgress(useJson: boolean, message: string): void {
+/**
+ * Log a progress message. In TTY mode this goes to stderr so it doesn't
+ * interfere with the progress bar (which also writes to stderr). In JSON
+ * mode it emits a structured line. In non-TTY text mode it just writes
+ * the plain message — the bar is suppressed entirely.
+ */
+function logLine(useJson: boolean, message: string): void {
   if (useJson) {
     process.stderr.write(JSON.stringify({ message }) + "\n");
-  } else {
-    if (isTTY()) {
-      process.stderr.write(chalk.cyan(message) + "\n");
-    } else {
-      process.stderr.write(message + "\n");
-    }
+  } else if (!isTTY()) {
+    // Non-TTY, non-JSON: plain text, no bar
+    process.stderr.write(message + "\n");
   }
+  // In TTY mode the progress bar handles all visual output; individual
+  // lines are suppressed to avoid clobbering the bar.
 }
 
 function printDryRun(meetings: Meeting[], outputDir: string, useJson: boolean): void {

@@ -36,7 +36,7 @@ export function registerSyncCommand(program: Command): void {
     .option("--no-transcripts", "Skip transcript fetching")
     .option("--no-private", "Exclude private notes from meeting files")
     .option("--batch-size <n>", "IDs per get_meetings call (default: 5)", "5")
-    .option("--delay <ms>", "Delay between MCP calls in ms (default: 200)", "200")
+    .option("--delay <ms>", "Delay between MCP calls in ms (default: 1000)", "1000")
     .option("--dry-run", "List meetings that would sync, don't write files")
     .option("--format <fmt>", "Progress output format: text, json")
     .addHelpText("after", `
@@ -45,7 +45,7 @@ Examples:
   $ spoon sync ./meetings --since "last week"
   $ spoon sync ./meetings --force
   $ spoon sync ./meetings --dry-run
-  $ spoon sync ./meetings --no-transcripts --delay 500
+  $ spoon sync ./meetings --no-transcripts --delay 2000
   $ spoon sync ~/spoon-backup --batch-size 10`)
     .action(async (outputDirArg: string, options: SyncOptions) => {
       try {
@@ -60,7 +60,7 @@ Examples:
 async function runSync(outputDirArg: string, options: SyncOptions): Promise<void> {
   const outputDir = resolve(outputDirArg);
   const batchSize = parsePosInt(options.batchSize, 5);
-  const delayMs = parsePosInt(options.delay, 200);
+  const delayMs = parsePosInt(options.delay, 1000);
   const includeTranscripts = options.transcripts !== false;
   const includePrivate = options.private !== false;
   const dryRun = options.dryRun === true;
@@ -137,6 +137,9 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
       const batch = meetingsToSync.slice(i, i + batchSize);
       const batchIds = batch.map((m) => m.id);
 
+      // Proactive throttle before every get_meetings call
+      if (i > 0) await sleep(delayMs);
+
       // Fetch full meeting details
       const details = await withRetry(
         () => client.getMeetings({
@@ -146,8 +149,6 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
         }),
         { baseDelayMs: 1000 },
       ) as MeetingDetail[];
-
-      await sleep(delayMs);
 
       for (const detail of details) {
         syncedCount++;
@@ -161,15 +162,15 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
         });
         logLine(useJson, `[${syncedCount}/${total}] ${title} → ${relativePath}`);
 
-        // Fetch transcript
+        // Fetch transcript — proactive throttle before each call
         if (includeTranscripts) {
           try {
+            await sleep(delayMs);
+
             const transcriptResult = await withRetry(
               () => client.getTranscript({ meeting_id: detail.id }),
               { baseDelayMs: 1000 },
             ) as TranscriptResult | null;
-
-            await sleep(delayMs);
 
             if (transcriptResult && transcriptResult.transcript.trim().length > 0) {
               writeTranscriptFileFromText(dir, detail, transcriptResult.transcript);

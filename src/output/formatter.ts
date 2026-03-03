@@ -62,6 +62,13 @@ function outputJson(data: unknown): void {
 
 // --- Table ---
 
+/** Terminals narrower than this get the compact card layout instead of a table. */
+const TABLE_MIN_WIDTH = 100;
+
+function terminalWidth(): number {
+  return process.stdout.columns ?? 120;
+}
+
 function outputTable(data: unknown): void {
   if (Array.isArray(data)) {
     if (data.length === 0) {
@@ -69,12 +76,23 @@ function outputTable(data: unknown): void {
       return;
     }
 
+    // Narrow terminals: compact card-style layout avoids ugly line-wrapping
+    if (terminalWidth() < TABLE_MIN_WIDTH) {
+      outputCompactList(data);
+      return;
+    }
+
     // Auto-detect columns from first item
     const firstItem = data[0] as Record<string, unknown>;
     const columns = getDisplayColumns(firstItem);
 
+    // Distribute available width across columns (account for borders/padding)
+    const availableWidth = terminalWidth() - (columns.length * 3) - 1;
+    const colWidths = distributeColWidths(columns, availableWidth);
+
     const table = new Table({
       head: columns.map((c) => chalk.bold(c.header)),
+      colWidths,
       style: { head: [], border: [] },
       wordWrap: true,
       wrapOnWordBoundary: true,
@@ -89,6 +107,15 @@ function outputTable(data: unknown): void {
   } else if (typeof data === "object" && data !== null) {
     // Single object — display as key/value table
     const record = data as Record<string, unknown>;
+
+    if (terminalWidth() < TABLE_MIN_WIDTH) {
+      // Compact: just print key: value pairs
+      for (const [key, value] of Object.entries(record)) {
+        console.log(`${chalk.bold(key + ":")} ${formatValue(value)}`);
+      }
+      return;
+    }
+
     const table = new Table({
       style: { head: [], border: [] },
     });
@@ -101,6 +128,70 @@ function outputTable(data: unknown): void {
   } else {
     console.log(String(data));
   }
+}
+
+/**
+ * Compact card-style list for narrow terminals.
+ * Each meeting gets a title line + indented metadata — no columns, no wrapping.
+ */
+function outputCompactList(data: unknown[]): void {
+  for (let i = 0; i < data.length; i++) {
+    const item = data[i] as Record<string, unknown>;
+    const width = terminalWidth();
+
+    // Title line
+    const title = item["title"] ? chalk.bold(String(item["title"])) : chalk.dim("(no title)");
+    console.log(title);
+
+    // Date
+    if (item["start_time"]) {
+      console.log("  " + chalk.dim(formatDate(item["start_time"] as string) + " · " + formatRelative(item["start_time"] as string)));
+    }
+
+    // Attendees — truncated to fit the line
+    if (Array.isArray(item["attendees"]) && (item["attendees"] as unknown[]).length > 0) {
+      const names = (item["attendees"] as Array<{ name?: string; email?: string }>)
+        .map((a) => a.name || a.email || "?")
+        .join(", ");
+      const prefix = "  With: ";
+      const maxLen = width - prefix.length - 2;
+      const truncated = names.length > maxLen ? names.slice(0, maxLen - 1) + "…" : names;
+      console.log(chalk.cyan(prefix) + truncated);
+    }
+
+    // ID (dimmed, useful for subsequent commands)
+    if (item["id"]) {
+      console.log("  " + chalk.dim("id: " + String(item["id"])));
+    }
+
+    // Separator between items (except last)
+    if (i < data.length - 1) {
+      console.log(chalk.dim("─".repeat(Math.min(width, 60))));
+    }
+  }
+}
+
+/**
+ * Distribute available pixel-width across columns.
+ * Title gets the most; ID gets a fixed narrow slice; attendees are capped.
+ */
+function distributeColWidths(columns: TableColumn[], available: number): number[] {
+  // Relative weights by column key
+  const weights: Record<string, number> = {
+    id:                0.12,
+    title:             0.32,
+    start_time:        0.14,
+    end_time:          0.14,
+    attendees:         0.22,
+    folder_membership: 0.10,
+    summary:           0.20,
+  };
+  const defaultWeight = 0.15;
+
+  const rawWeights = columns.map((c) => weights[c.key] ?? defaultWeight);
+  const totalWeight = rawWeights.reduce((a, b) => a + b, 0);
+
+  return rawWeights.map((w) => Math.max(6, Math.floor((w / totalWeight) * available)));
 }
 
 // --- CSV ---

@@ -11,6 +11,14 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.2] — 2026-03-03
+
+### Fixed
+- **`meetings list` table** no longer line-wraps on narrow terminals. Terminals narrower than 100 columns now render a compact card-style layout (title, date, attendees, id — one meeting per card). Wider terminals keep the table layout with column widths distributed proportionally to the available width instead of being unconstrained.
+- **`sync` rate limiting** — delay is now applied *before* each MCP call (proactive throttling) rather than after batch fetches (reactive). Default delay raised from 200 ms to 1000 ms to stay comfortably ahead of the server's rate limit.
+
+---
+
 ## [0.2.1] — 2026-03-03
 
 ### Fixed
@@ -69,7 +77,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MadSkills-io/spoon-cli/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/MadSkills-io/spoon-cli/compare/v0.1.0...v0.1.1

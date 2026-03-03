@@ -19,7 +19,7 @@ export interface StoredClientInfo {
   client_secret_expires_at?: number;
 }
 
-const GRANOLA_DIR = join(homedir(), ".granola");
+const GRANOLA_DIR = join(homedir(), ".spoon");
 const CREDENTIALS_FILE = join(GRANOLA_DIR, "credentials.json");
 const CLIENT_FILE = join(GRANOLA_DIR, "client.json");
 const DISCOVERY_FILE = join(GRANOLA_DIR, "discovery.json");

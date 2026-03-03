@@ -18,7 +18,7 @@ const testHomeDir = join(tmpdir(), `granola-test-${process.pid}`);
 describe("Token Store", () => {
   beforeEach(() => {
     // Create a fresh test directory
-    mkdirSync(join(testHomeDir, ".granola"), { recursive: true });
+    mkdirSync(join(testHomeDir, ".spoon"), { recursive: true });
   });
 
   afterEach(() => {

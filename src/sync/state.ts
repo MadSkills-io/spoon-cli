@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const GRANOLA_DIR = join(homedir(), ".granola");
+const GRANOLA_DIR = join(homedir(), ".spoon");
 const STATE_FILE = join(GRANOLA_DIR, "sync-state.json");
 
 export interface SyncState {
@@ -18,7 +18,7 @@ const DEFAULT_STATE: SyncState = {
 };
 
 /**
- * Load sync state from ~/.granola/sync-state.json.
+ * Load sync state from ~/.spoon/sync-state.json.
  * Returns default state if the file does not exist or is malformed.
  */
 export function loadSyncState(): SyncState {
@@ -36,7 +36,7 @@ export function loadSyncState(): SyncState {
 }
 
 /**
- * Persist sync state to ~/.granola/sync-state.json.
+ * Persist sync state to ~/.spoon/sync-state.json.
  */
 export function saveSyncState(state: SyncState): void {
   if (!existsSync(GRANOLA_DIR)) {

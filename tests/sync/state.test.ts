@@ -16,7 +16,7 @@ const testHomeDir = join(tmpdir(), `granola-sync-state-test-${process.pid}`);
 
 describe("Sync State", () => {
   beforeEach(() => {
-    mkdirSync(join(testHomeDir, ".granola"), { recursive: true });
+    mkdirSync(join(testHomeDir, ".spoon"), { recursive: true });
   });
 
   afterEach(() => {
@@ -70,18 +70,18 @@ describe("Sync State", () => {
     expect(loaded).toEqual(original);
   });
 
-  it("creates the .granola directory if it does not exist", async () => {
+  it("creates the .spoon directory if it does not exist", async () => {
     const { saveSyncState } = await import("../../src/sync/state.js");
 
-    // Remove the .granola dir
-    rmSync(join(testHomeDir, ".granola"), { recursive: true, force: true });
+    // Remove the .spoon dir
+    rmSync(join(testHomeDir, ".spoon"), { recursive: true, force: true });
 
     saveSyncState({
       lastSyncAt: "2024-01-01T00:00:00.000Z",
       syncedMeetings: {},
     });
 
-    expect(existsSync(join(testHomeDir, ".granola", "sync-state.json"))).toBe(true);
+    expect(existsSync(join(testHomeDir, ".spoon", "sync-state.json"))).toBe(true);
   });
 
   it("writes valid JSON to the state file", async () => {

@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const GRANOLA_DIR = join(homedir(), ".granola");
+const GRANOLA_DIR = join(homedir(), ".spoon");
 const CONFIG_FILE = join(GRANOLA_DIR, "config.json");
 
 export interface GranolaConfig {

@@ -58,7 +58,7 @@ Granola uses OAuth 2.1. Run this once to authenticate:
 spoon auth login
 ```
 
-Your browser will open for sign-in. The token is stored in `~/.granola/credentials.json` and refreshes automatically.
+Your browser will open for sign-in. The token is stored in `~/.spoon/credentials.json` and refreshes automatically.
 
 ```bash
 spoon auth status    # check authentication state
@@ -189,7 +189,7 @@ meetings/
 
 Meeting files contain YAML front-matter (id, title, date, attendees, folders) followed by Summary, Notes, and Private Notes sections. Transcript files contain speaker-attributed, timestamped dialogue.
 
-Sync state is persisted at `~/.granola/sync-state.json` — running `sync` again only fetches new meetings.
+Sync state is persisted at `~/.spoon/sync-state.json` — running `sync` again only fetches new meetings.
 
 ### `spoon config`
 
@@ -284,10 +284,10 @@ AI agents can discover all commands from `spoon --help` with zero token overhead
 
 ## Data & Credentials
 
-All credentials and config are stored in `~/.granola/`:
+All credentials and config are stored in `~/.spoon/`:
 
 ```
-~/.granola/
+~/.spoon/
 ├── credentials.json   # Access + refresh tokens (chmod 0600)
 ├── client.json        # OAuth client registration (cached)
 ├── config.json        # CLI preferences

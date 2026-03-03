@@ -41,7 +41,7 @@ spoon config
 - `src/auth/token-store.ts` — Credential persistence
 - `src/commands/` — Command implementations
 - `src/commands/sync.ts` — Sync command (mirrors meetings to local Markdown files)
-- `src/sync/state.ts` — Sync state persistence (`~/.granola/sync-state.json`)
+- `src/sync/state.ts` — Sync state persistence (`~/.spoon/sync-state.json`)
 - `src/sync/writer.ts` — Markdown file writer (meeting notes + transcripts)
 - `src/utils/retry.ts` — `withRetry()` exponential-backoff utility for rate-limited calls
 - `src/output/formatter.ts` — Output formatting

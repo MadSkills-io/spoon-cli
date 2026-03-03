@@ -30,7 +30,7 @@ npx spoon-cli --help
 Clone the repo and run directly without publishing to npm:
 
 ```bash
-git clone https://github.com/your-org/spoon-cli.git
+git clone https://github.com/MadSkills-io/spoon-cli.git
 cd spoon-cli
 pnpm install
 pnpm build

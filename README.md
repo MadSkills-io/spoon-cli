@@ -141,7 +141,7 @@ spoon query "Who mentioned the budget?" --format json
 
 ### `spoon sync <output-dir>`
 
-Mirror Granola meeting notes and transcripts to a local directory as Markdown files with YAML front-matter. Supports incremental sync — only fetches meetings since the last run.
+Mirror Granola meeting notes and transcripts to a local directory as Markdown files with YAML front-matter. Supports incremental sync — only fetches meetings since the last run. Shows a live progress bar in interactive terminals.
 
 ```
 Options:
@@ -274,10 +274,10 @@ ID=$(spoon meetings list --format json | jq -r '.[0].id')
 spoon meetings transcript "$ID" --format json > transcript.json
 
 # Mirror all meetings to local Markdown files
-spoon sync ~/granola-backup
+spoon sync ~/spoon-backup
 
 # Incremental backup (only new meetings since last run)
-spoon sync ~/granola-backup --since "last week"
+spoon sync ~/spoon-backup --since "last week"
 ```
 
 AI agents can discover all commands from `spoon --help` with zero token overhead — no MCP tool definitions needed.

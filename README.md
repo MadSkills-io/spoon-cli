@@ -145,18 +145,20 @@ Mirror Granola meeting notes and transcripts to a local directory as Markdown fi
 
 ```
 Options:
-  --since <date>      Override incremental sync; start from this date
-  --force             Re-sync all meetings (ignores last-run state)
-  --no-transcripts    Skip transcript fetching
-  --no-private        Exclude private notes from meeting files
-  --batch-size <n>    IDs per get_meetings call (default: 5)
-  --delay <ms>        Delay between MCP calls in ms (default: 200)
-  --dry-run           List meetings that would sync, don't write files
-  --format <fmt>      Progress output format: text, json
+  --since <date>    Override incremental sync; start from this date
+  --force           Re-sync all meetings (ignores last-run state)
+  --transcripts     Also fetch transcripts (see rate limit warning below)
+  --no-private      Exclude private notes from meeting files
+  --batch-size <n>  IDs per get_meetings call (default: 5)
+  --delay <ms>      Delay between MCP calls in ms (default: 1000)
+  --dry-run         List meetings that would sync, don't write files
+  --format <fmt>    Progress output format: text, json
 ```
 
+> **Transcript rate limit:** The Granola API enforces a hard limit of approximately **2 transcript calls per 7-minute window**. Transcripts are therefore **opt-in** via `--transcripts` and are not fetched by default. For large syncs, fetch meeting notes first and transcripts separately in small batches.
+
 ```bash
-# Sync all meetings to a local directory
+# Sync all meeting notes (no transcripts — fast, no rate limiting)
 spoon sync ./meetings
 
 # Sync only meetings from last week
@@ -168,11 +170,11 @@ spoon sync ./meetings --dry-run
 # Re-sync everything, overwriting existing files
 spoon sync ./meetings --force
 
-# Skip transcripts and private notes
-spoon sync ./meetings --no-transcripts --no-private
+# Also fetch transcripts (slow — will hit rate limits on more than ~2 meetings)
+spoon sync ./meetings --transcripts --since "today"
 
-# Slow down requests to avoid rate limiting
-spoon sync ./meetings --delay 500
+# Exclude private notes
+spoon sync ./meetings --no-private
 ```
 
 **Output layout:**

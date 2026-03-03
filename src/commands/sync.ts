@@ -33,19 +33,23 @@ export function registerSyncCommand(program: Command): void {
     .description("Mirror Granola meeting notes and transcripts to a local directory")
     .option("--since <date>", "Override incremental sync; start from this date")
     .option("--force", "Re-sync all meetings (ignores last-run state)")
-    .option("--no-transcripts", "Skip transcript fetching")
+    .option("--transcripts", "Also fetch transcripts (warning: very strict rate limit — ~2 calls per 7 min)")
     .option("--no-private", "Exclude private notes from meeting files")
     .option("--batch-size <n>", "IDs per get_meetings call (default: 5)", "5")
     .option("--delay <ms>", "Delay between MCP calls in ms (default: 1000)", "1000")
     .option("--dry-run", "List meetings that would sync, don't write files")
     .option("--format <fmt>", "Progress output format: text, json")
     .addHelpText("after", `
+Notes:
+  Transcripts are NOT fetched by default — the transcript API has a very tight
+  rate limit (~2 calls per 7 minutes). Use --transcripts only for small syncs.
+
 Examples:
   $ spoon sync ./meetings
   $ spoon sync ./meetings --since "last week"
   $ spoon sync ./meetings --force
   $ spoon sync ./meetings --dry-run
-  $ spoon sync ./meetings --no-transcripts --delay 2000
+  $ spoon sync ./meetings --transcripts    # fetch transcripts (slow)
   $ spoon sync ~/spoon-backup --batch-size 10`)
     .action(async (outputDirArg: string, options: SyncOptions) => {
       try {
@@ -61,7 +65,8 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
   const outputDir = resolve(outputDirArg);
   const batchSize = parsePosInt(options.batchSize, 5);
   const delayMs = parsePosInt(options.delay, 1000);
-  const includeTranscripts = options.transcripts !== false;
+  // Transcripts are opt-in: the server enforces ~2 calls per ~7 minute window.
+  const includeTranscripts = options.transcripts === true;
   const includePrivate = options.private !== false;
   const dryRun = options.dryRun === true;
   const force = options.force === true;
@@ -83,13 +88,17 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
     since = state.lastSyncAt;
   }
 
+  if (includeTranscripts) {
+    const warn = "⚠  Transcript fetching is enabled. The API allows ~2 transcript calls per ~7 minutes. Expect long pauses.";
+    process.stderr.write(chalk.yellow(warn) + "\n");
+  }
+
   logLine(useJson, `Syncing meetings${since ? ` since ${since}` : " (all time)"}...`);
 
   // 2. List meetings
   const client = getMcpClient();
   const allMeetings = await withRetry(
     () => client.listMeetings(since ? { since } : {}),
-    { baseDelayMs: 1000 },
   ) as Meeting[];
 
   // 3. Filter out already-synced meetings (unless --force)
@@ -132,22 +141,31 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
 
   bar?.start(totalSteps, 0, { currentTitle: "starting…" });
 
+  // Track when we last made an MCP call so we can pace every call consistently.
+  let lastCallAt = 0;
+
+  async function throttledCall<T>(fn: () => Promise<T>): Promise<T> {
+    const now = Date.now();
+    const elapsed = now - lastCallAt;
+    if (lastCallAt > 0 && elapsed < delayMs) {
+      await sleep(delayMs - elapsed);
+    }
+    lastCallAt = Date.now();
+    return fn();
+  }
+
   try {
     for (let i = 0; i < meetingsToSync.length; i += batchSize) {
       const batch = meetingsToSync.slice(i, i + batchSize);
       const batchIds = batch.map((m) => m.id);
 
-      // Proactive throttle before every get_meetings call
-      if (i > 0) await sleep(delayMs);
-
-      // Fetch full meeting details
+      // Fetch full meeting details — throttled before every batch
       const details = await withRetry(
-        () => client.getMeetings({
+        () => throttledCall(() => client.getMeetings({
           meeting_ids: batchIds,
           include_private_notes: includePrivate,
           include_enhanced_notes: true,
-        }),
-        { baseDelayMs: 1000 },
+        })),
       ) as MeetingDetail[];
 
       for (const detail of details) {
@@ -162,20 +180,20 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
         });
         logLine(useJson, `[${syncedCount}/${total}] ${title} → ${relativePath}`);
 
-        // Fetch transcript — proactive throttle before each call
+        // Fetch transcript — throttled before every call, same pacing as batch fetches
         if (includeTranscripts) {
           try {
-            await sleep(delayMs);
-
             const transcriptResult = await withRetry(
-              () => client.getTranscript({ meeting_id: detail.id }),
-              { baseDelayMs: 1000 },
+              () => throttledCall(() => client.getTranscript({ meeting_id: detail.id })),
             ) as TranscriptResult | null;
 
             if (transcriptResult && transcriptResult.transcript.trim().length > 0) {
               writeTranscriptFileFromText(dir, detail, transcriptResult.transcript);
             }
           } catch (err) {
+            // After exhausting retries, reset the throttle clock so the next
+            // call waits a full delayMs from now (not from a long time ago).
+            lastCallAt = Date.now();
             // Transcript failures should not abort the sync
             const msg = err instanceof Error ? err.message : String(err);
             bar?.stop();

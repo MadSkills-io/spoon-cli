@@ -11,6 +11,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.3] — 2026-03-03
+
+### Fixed
+- **`sync` transcript rate limiting** — end-to-end testing revealed the transcript API enforces a hard limit of approximately **2 calls per 7-minute window** regardless of delay. This is a server-side quota, not a rate per second, so no amount of inter-call delay prevents exhaustion during a sync of more than 2 meetings.
+
+### Changed
+- **`--transcripts` is now opt-in** (previously `--no-transcripts` was required to skip). Transcripts are no longer fetched by default. Pass `--transcripts` to enable, and expect a warning about the rate limit.
+- **`withRetry` default base delay raised from 1s → 10s**, giving a backoff sequence of 10s → 20s → 40s → 80s instead of 1s → 2s → 4s → 8s. The previous sequence was too short to survive the server's actual rate limit window.
+- **Throttle clock is wall-clock based** (`throttledCall`): delay is measured from when the last call *completed*, not when it was *issued*, ensuring the full `delayMs` gap is always respected regardless of how long the call took.
+- Retry log messages now show seconds (`10s`) instead of milliseconds (`10000ms`).
+
+---
+
 ## [0.2.2] — 2026-03-03
 
 ### Fixed
@@ -77,7 +90,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/MadSkills-io/spoon-cli/compare/v0.1.1...v0.2.0

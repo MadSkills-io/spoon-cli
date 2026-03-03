@@ -3,10 +3,8 @@ import { writeError, EXIT_RATE_LIMITED } from "../output/errors.js";
 export interface RetryOptions {
   /** Maximum number of retry attempts (default: 4) */
   maxAttempts?: number;
-  /** Base delay in ms for exponential backoff (default: 1000) */
+  /** Base delay in ms for exponential backoff (default: 10000 = 10s) */
   baseDelayMs?: number;
-  /** Delay between sequential MCP calls in ms (default: 200) */
-  delayBetweenMs?: number;
 }
 
 /**
@@ -14,12 +12,15 @@ export interface RetryOptions {
  *
  * Only retries when the error looks like a 429 / rate-limit response.
  * All other errors are re-thrown immediately.
+ *
+ * Default base delay is 10s, giving a backoff sequence of:
+ *   attempt 1: 10s, attempt 2: 20s, attempt 3: 40s, attempt 4: 80s
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
   opts: RetryOptions = {},
 ): Promise<T> {
-  const { maxAttempts = 4, baseDelayMs = 1000 } = opts;
+  const { maxAttempts = 4, baseDelayMs = 10_000 } = opts;
   let lastError: unknown;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -30,7 +31,7 @@ export async function withRetry<T>(
       lastError = err;
       const delay = baseDelayMs * 2 ** attempt;
       writeError(
-        `Rate limited — retrying in ${delay}ms (attempt ${attempt + 1}/${maxAttempts})`,
+        `Rate limited — retrying in ${Math.round(delay / 1000)}s (attempt ${attempt + 1}/${maxAttempts})`,
         EXIT_RATE_LIMITED,
       );
       await sleep(delay);

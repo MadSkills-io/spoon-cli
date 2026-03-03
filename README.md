@@ -21,6 +21,31 @@ Or run without installing:
 npx granola-cli --help
 ```
 
+## Running from source
+
+Clone the repo and run directly without publishing to npm:
+
+```bash
+git clone https://github.com/your-org/granola-cli.git
+cd granola-cli
+pnpm install
+pnpm build
+node dist/index.js --help
+```
+
+To use `granola` as a global command from your local checkout:
+
+```bash
+pnpm link --global
+granola --help
+```
+
+To unlink later:
+
+```bash
+pnpm unlink --global granola-cli
+```
+
 ## Authentication
 
 Granola uses OAuth 2.1. Run this once to authenticate:

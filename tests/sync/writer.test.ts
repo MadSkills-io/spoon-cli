@@ -11,6 +11,8 @@ import {
   renderTranscriptMarkdown,
   writeMeetingFile,
   writeTranscriptFile,
+  renderTranscriptMarkdownFromText,
+  writeTranscriptFileFromText,
 } from "../../src/sync/writer.js";
 import type { MeetingDetail, TranscriptSegment } from "../../src/mcp/types.js";
 
@@ -316,5 +318,85 @@ describe("writeTranscriptFile", () => {
     const content = readFileSync(filePath, "utf-8");
     expect(content).toContain("**Alice**");
     expect(content).toContain("Hello.");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Plain-text transcript variants (match actual server response shape)
+// ---------------------------------------------------------------------------
+
+describe("renderTranscriptMarkdownFromText", () => {
+  const meeting: MeetingDetail = {
+    id: "meeting-001",
+    title: "Q1 Planning Session",
+    start_time: "2024-01-15T09:00:00Z",
+  };
+
+  it("includes YAML front-matter with id and title", () => {
+    const md = renderTranscriptMarkdownFromText(meeting, "Alice: Hello.");
+    expect(md).toContain("---");
+    expect(md).toContain("id: meeting-001");
+    expect(md).toContain("title: Q1 Planning Session");
+  });
+
+  it("includes a ## Transcript heading", () => {
+    const md = renderTranscriptMarkdownFromText(meeting, "some text");
+    expect(md).toContain("## Transcript");
+  });
+
+  it("includes the transcript text verbatim", () => {
+    const transcript = "Alice: Hello.\nBob: Hi there.";
+    const md = renderTranscriptMarkdownFromText(meeting, transcript);
+    expect(md).toContain("Alice: Hello.");
+    expect(md).toContain("Bob: Hi there.");
+  });
+
+  it("handles an empty transcript string", () => {
+    const md = renderTranscriptMarkdownFromText(meeting, "");
+    expect(md).toContain("## Transcript");
+  });
+});
+
+describe("writeTranscriptFileFromText", () => {
+  it("writes a .transcript.md file and returns the correct path", () => {
+    const meeting: MeetingDetail = {
+      id: "m1",
+      title: "Standup",
+      start_time: "2024-01-16T10:00:00Z",
+    };
+
+    const outputDir = join(testDir, "text-transcripts");
+    const filePath = writeTranscriptFileFromText(outputDir, meeting, "Hello world.");
+
+    expect(filePath).toContain("2024-01-16-standup.transcript.md");
+    expect(existsSync(filePath)).toBe(true);
+
+    const content = readFileSync(filePath, "utf-8");
+    expect(content).toContain("Hello world.");
+    expect(content).toContain("## Transcript");
+  });
+
+  it("creates parent directories recursively", () => {
+    const meeting: MeetingDetail = {
+      id: "m2",
+      title: "Deep Nested",
+      start_time: "2024-02-01T10:00:00Z",
+    };
+
+    const deepDir = join(testDir, "x", "y", "z");
+    const filePath = writeTranscriptFileFromText(deepDir, meeting, "text");
+    expect(existsSync(filePath)).toBe(true);
+  });
+
+  it("includes id in front-matter", () => {
+    const meeting: MeetingDetail = {
+      id: "abc-123",
+      title: "Test",
+      start_time: "2024-03-01T08:00:00Z",
+    };
+
+    const filePath = writeTranscriptFileFromText(testDir, meeting, "content");
+    const content = readFileSync(filePath, "utf-8");
+    expect(content).toContain("id: abc-123");
   });
 });

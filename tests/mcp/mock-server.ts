@@ -37,6 +37,59 @@ export const MOCK_MEETINGS: MockMeetingData[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// XML rendering helpers — match the real Granola MCP server response format
+// ---------------------------------------------------------------------------
+
+function escapeXmlAttr(s: string): string {
+  return s
+    .replace(/&/g,  "&amp;")
+    .replace(/</g,  "&lt;")
+    .replace(/>/g,  "&gt;")
+    .replace(/"/g,  "&quot;");
+}
+
+function formatMockDate(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+
+function renderMockMeetingListXml(meetings: MockMeetingData[]): string {
+  const tags = meetings.map((m) => {
+    const participants = m.attendees.map((a) => `${a.name} <${a.email}>`).join(", ");
+    return [
+      `  <meeting id="${escapeXmlAttr(m.id)}" title="${escapeXmlAttr(m.title)}" date="${formatMockDate(m.start_time)}">`,
+      `    <known_participants>`,
+      `    ${participants}`,
+      `    </known_participants>`,
+      `  </meeting>`,
+    ].join("\n");
+  });
+  return [`<meetings_data count="${meetings.length}">`, ...tags, `</meetings_data>`].join("\n");
+}
+
+function renderMockMeetingDetailXml(meetings: MockMeetingData[]): string {
+  const tags = meetings.map((m) => {
+    const participants = m.attendees.map((a) => `${a.name} <${a.email}>`).join(", ");
+    const summary = m.summary ?? "";
+    return [
+      `  <meeting id="${escapeXmlAttr(m.id)}" title="${escapeXmlAttr(m.title)}" date="${formatMockDate(m.start_time)}">`,
+      `    <known_participants>`,
+      `    ${participants}`,
+      `    </known_participants>`,
+      `    <summary>`,
+      `${summary}`,
+      `    </summary>`,
+      `  </meeting>`,
+    ].join("\n");
+  });
+  return [`<meetings_data count="${meetings.length}">`, ...tags, `</meetings_data>`].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+
 function handleJsonRpc(
   body: Record<string, unknown>
 ): unknown {
@@ -87,15 +140,12 @@ function handleJsonRpc(
           )
         );
       }
-      if (args["limit"]) {
-        meetings = meetings.slice(0, Number(args["limit"]));
-      }
 
       return {
         jsonrpc: "2.0",
         id,
         result: {
-          content: [{ type: "text", text: JSON.stringify(meetings) }],
+          content: [{ type: "text", text: renderMockMeetingListXml(meetings) }],
           isError: false,
         },
       };
@@ -109,7 +159,7 @@ function handleJsonRpc(
         jsonrpc: "2.0",
         id,
         result: {
-          content: [{ type: "text", text: JSON.stringify(meetings) }],
+          content: [{ type: "text", text: renderMockMeetingDetailXml(meetings) }],
           isError: false,
         },
       };
@@ -130,6 +180,7 @@ function handleJsonRpc(
         };
       }
 
+      // Return flat JSON matching the real server shape: {id, title, transcript}
       return {
         jsonrpc: "2.0",
         id,
@@ -137,10 +188,11 @@ function handleJsonRpc(
           content: [
             {
               type: "text",
-              text: JSON.stringify([
-                { speaker: "Alice Smith", text: "Let's get started.", start_time: meeting.start_time },
-                { speaker: "Bob Jones", text: "Sounds good.", start_time: meeting.start_time },
-              ]),
+              text: JSON.stringify({
+                id:         meeting.id,
+                title:      meeting.title,
+                transcript: "Alice Smith: Let's get started.\nBob Jones: Sounds good.",
+              }),
             },
           ],
           isError: false,

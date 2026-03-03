@@ -2,6 +2,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { MeetingDetail, TranscriptSegment } from "../mcp/types.js";
 
+// Note: TranscriptSegment-based functions are kept for tests.
+// New code should use renderTranscriptMarkdownFromText / writeTranscriptFileFromText
+// which match the actual server response shape (plain text blob).
+
 /**
  * Convert a title to a URL-safe slug.
  * Lowercase, replace non-alphanumeric with hyphens, collapse runs, trim edges.
@@ -178,6 +182,45 @@ export function writeTranscriptFile(
   const prefix = buildFilePrefix(meeting);
   const filePath = join(dir, `${prefix}.transcript.md`);
   const content = renderTranscriptMarkdown(meeting, segments);
+  writeFileSync(filePath, content, "utf-8");
+  return filePath;
+}
+
+// ---------------------------------------------------------------------------
+// Plain-text transcript variants (matches actual server response shape)
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a meeting transcript from a plain-text blob as Markdown.
+ * Used when the API returns a flat string instead of structured segments.
+ */
+export function renderTranscriptMarkdownFromText(
+  meeting: MeetingDetail,
+  transcript: string,
+): string {
+  const frontMatter = formatFrontMatter({
+    id:    meeting.id,
+    title: meeting.title,
+    date:  meeting.start_time,
+  });
+
+  return [frontMatter, "", "## Transcript", "", transcript, ""].join("\n");
+}
+
+/**
+ * Write a plain-text transcript to disk as Markdown.
+ * Creates parent directories as needed.
+ * Returns the absolute file path.
+ */
+export function writeTranscriptFileFromText(
+  dir: string,
+  meeting: MeetingDetail,
+  transcript: string,
+): string {
+  mkdirSync(dir, { recursive: true });
+  const prefix   = buildFilePrefix(meeting);
+  const filePath = join(dir, `${prefix}.transcript.md`);
+  const content  = renderTranscriptMarkdownFromText(meeting, transcript);
   writeFileSync(filePath, content, "utf-8");
   return filePath;
 }

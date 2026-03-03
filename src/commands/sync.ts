@@ -3,7 +3,7 @@ import chalk from "chalk";
 import cliProgress from "cli-progress";
 import { resolve } from "node:path";
 import { getMcpClient, closeMcpClient } from "../mcp/client.js";
-import type { Meeting, MeetingDetail, TranscriptSegment } from "../mcp/types.js";
+import type { Meeting, MeetingDetail, TranscriptResult } from "../mcp/types.js";
 import { parseDate } from "../utils/dates.js";
 import { withRetry, sleep } from "../utils/retry.js";
 import { loadSyncState, saveSyncState, type SyncState } from "../sync/state.js";
@@ -11,7 +11,7 @@ import {
   getMeetingDir,
   buildFilePrefix,
   writeMeetingFile,
-  writeTranscriptFile,
+  writeTranscriptFileFromText,
 } from "../sync/writer.js";
 import { handleError, writeError, EXIT_ERROR } from "../output/errors.js";
 import { isTTY } from "../utils/tty.js";
@@ -87,12 +87,10 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
 
   // 2. List meetings
   const client = getMcpClient();
-  const listResult = await withRetry(
+  const allMeetings = await withRetry(
     () => client.listMeetings(since ? { since } : {}),
     { baseDelayMs: 1000 },
-  );
-
-  const allMeetings = (Array.isArray(listResult) ? listResult : []) as Meeting[];
+  ) as Meeting[];
 
   // 3. Filter out already-synced meetings (unless --force)
   const meetingsToSync = force
@@ -140,18 +138,16 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
       const batchIds = batch.map((m) => m.id);
 
       // Fetch full meeting details
-      const detailResult = await withRetry(
+      const details = await withRetry(
         () => client.getMeetings({
           meeting_ids: batchIds,
           include_private_notes: includePrivate,
           include_enhanced_notes: true,
         }),
         { baseDelayMs: 1000 },
-      );
+      ) as MeetingDetail[];
 
       await sleep(delayMs);
-
-      const details = (Array.isArray(detailResult) ? detailResult : []) as MeetingDetail[];
 
       for (const detail of details) {
         syncedCount++;
@@ -171,13 +167,12 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
             const transcriptResult = await withRetry(
               () => client.getTranscript({ meeting_id: detail.id }),
               { baseDelayMs: 1000 },
-            );
+            ) as TranscriptResult | null;
 
             await sleep(delayMs);
 
-            const segments = normalizeTranscriptResult(transcriptResult);
-            if (segments.length > 0) {
-              writeTranscriptFile(dir, detail, segments);
+            if (transcriptResult && transcriptResult.transcript.trim().length > 0) {
+              writeTranscriptFileFromText(dir, detail, transcriptResult.transcript);
             }
           } catch (err) {
             // Transcript failures should not abort the sync
@@ -260,15 +255,3 @@ function printDryRun(meetings: Meeting[], outputDir: string, useJson: boolean): 
   }
 }
 
-/**
- * Normalize the transcript tool result into an array of TranscriptSegment.
- * The MCP server may return an array directly or wrap it.
- */
-function normalizeTranscriptResult(result: unknown): TranscriptSegment[] {
-  if (Array.isArray(result)) return result as TranscriptSegment[];
-  if (result && typeof result === "object" && "segments" in result) {
-    const r = result as Record<string, unknown>;
-    if (Array.isArray(r["segments"])) return r["segments"] as TranscriptSegment[];
-  }
-  return [];
-}

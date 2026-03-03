@@ -8,6 +8,9 @@ import type {
   GetTranscriptParams,
   QueryParams,
   Meeting,
+  MeetingDetail,
+  Attendee,
+  TranscriptResult,
 } from "./types.js";
 
 const GRANOLA_MCP_URL = "https://mcp.granola.ai/mcp";
@@ -29,6 +32,146 @@ function extractTextContent(content: unknown): string {
     .filter((c) => c.type === "text" && typeof c.text === "string")
     .map((c) => c.text as string)
     .join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// XML parsing helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert the API date string ("Mar 3, 2026 6:00 PM") to ISO 8601.
+ * Falls back to the raw string if parsing fails rather than crashing.
+ */
+function parseApiDate(raw: string): string {
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) return d.toISOString();
+  return raw;
+}
+
+/**
+ * Extract a named attribute value from an XML opening-tag attribute string.
+ * Handles both single- and double-quoted values.
+ */
+function extractAttr(attrs: string, name: string): string {
+  const re = new RegExp(`${name}=["']([^"']*)["']`);
+  const m = attrs.match(re);
+  return m ? m[1] : "";
+}
+
+/**
+ * Decode the XML entities that appear in Granola attribute values.
+ */
+function decodeXmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
+/**
+ * Parse the known_participants text block into Attendee[].
+ *
+ * Input format (whitespace-trimmed):
+ *   "Andy Hahn (note creator) from Tackle <andy@example.com>, Bob Jones <bob@example.com>"
+ *
+ * Strategy: split on the "> ," boundary (end of one email, start of next entry),
+ * re-attach the ">" to each fragment, then extract name + email per fragment.
+ */
+function parseAttendees(raw: string): Attendee[] {
+  if (!raw.trim()) return [];
+
+  const parts = raw
+    .trim()
+    .split(/>[\s]*,[\s]*/)
+    .map((p, i, arr) => (i < arr.length - 1 ? p + ">" : p).trim())
+    .filter(Boolean);
+
+  return parts.map((part): Attendee => {
+    // Capture: name (before optional annotation / "from Company"), then <email>
+    const match = part.match(/^([\s\S]+?)\s*(?:\([^)]*\))?\s*(?:from\s+[^<]+?)?\s*<([^>]+)>$/);
+    if (match) {
+      return { name: match[1].trim(), email: match[2].trim() };
+    }
+    // No email found — treat whole string as a name only
+    return { name: part.trim() };
+  });
+}
+
+/**
+ * Parse the XML returned by list_meetings into Meeting[].
+ *
+ * Structure:
+ *   <meetings_data from="..." to="..." count="N">
+ *     <meeting id="UUID" title="..." date="Mar 3, 2026 6:00 PM">
+ *       <known_participants>Name <email>, ...</known_participants>
+ *     </meeting>
+ *   </meetings_data>
+ */
+function parseXmlMeetings(xml: string): Meeting[] {
+  const meetings: Meeting[] = [];
+  const meetingRe = /<meeting\s([^>]*)>([\s\S]*?)<\/meeting>/g;
+  let m: RegExpExecArray | null;
+
+  while ((m = meetingRe.exec(xml)) !== null) {
+    const attrs = m[1];
+    const body  = m[2];
+
+    const id         = extractAttr(attrs, "id");
+    const title      = decodeXmlEntities(extractAttr(attrs, "title"));
+    const date       = extractAttr(attrs, "date");
+    const pMatch     = body.match(/<known_participants>([\s\S]*?)<\/known_participants>/);
+    const attendees  = pMatch ? parseAttendees(pMatch[1]) : [];
+
+    meetings.push({
+      id,
+      title,
+      start_time: date ? parseApiDate(date) : undefined,
+      attendees,
+    });
+  }
+
+  return meetings;
+}
+
+/**
+ * Parse the XML returned by get_meetings into MeetingDetail[].
+ * Extends the list parser by also extracting <summary>.
+ */
+function parseXmlMeetingDetail(xml: string): MeetingDetail[] {
+  const details: MeetingDetail[] = [];
+  const meetingRe = /<meeting\s([^>]*)>([\s\S]*?)<\/meeting>/g;
+  let m: RegExpExecArray | null;
+
+  while ((m = meetingRe.exec(xml)) !== null) {
+    const attrs = m[1];
+    const body  = m[2];
+
+    const id    = extractAttr(attrs, "id");
+    const title = decodeXmlEntities(extractAttr(attrs, "title"));
+    const date  = extractAttr(attrs, "date");
+
+    const pMatch    = body.match(/<known_participants>([\s\S]*?)<\/known_participants>/);
+    const attendees = pMatch ? parseAttendees(pMatch[1]) : [];
+
+    const sMatch  = body.match(/<summary>([\s\S]*?)<\/summary>/);
+    const rawSummary = sMatch ? sMatch[1].trim() : undefined;
+    // Treat "No summary" placeholder as absent
+    const summary = rawSummary && rawSummary !== "No summary" ? rawSummary : undefined;
+
+    details.push({
+      id,
+      title,
+      start_time: date ? parseApiDate(date) : undefined,
+      attendees,
+      summary,
+      notes: summary,          // summary is the best available content
+      enhanced_notes: summary, // same — avoids the "no notes" fall-through in writer
+    });
+  }
+
+  return details;
 }
 
 export class McpClient {
@@ -55,7 +198,7 @@ export class McpClient {
     );
 
     this.client = new Client(
-      { name: "granola-cli", version: "0.1.0" },
+      { name: "spoon-cli", version: "0.2.0" },
       { capabilities: {} }
     );
 
@@ -139,7 +282,7 @@ export class McpClient {
           );
           return this.parseResult(retryResult, name);
         }
-        throw new AuthError("Session expired. Run: granola auth login");
+        throw new AuthError("Session expired. Run: spoon auth login");
       }
       throw error;
     }
@@ -179,27 +322,63 @@ export class McpClient {
 
   // --- High-level tool wrappers ---
 
-  async listMeetings(params: ListMeetingsParams = {}): Promise<unknown> {
-    // Strip folder — it's a client-side filter, not sent to the MCP server
-    const { folder, ...serverParams } = params;
+  /**
+   * List meetings. The server ignores since/until/limit — filtering is applied
+   * client-side after parsing the XML response. The attendee param is sent to
+   * the server as it is honoured server-side.
+   */
+  async listMeetings(params: ListMeetingsParams = {}): Promise<Meeting[]> {
+    const { folder, since, until, limit, attendee } = params;
 
     const args: Record<string, unknown> = {};
-    if (serverParams.since) args["since"] = serverParams.since;
-    if (serverParams.until) args["until"] = serverParams.until;
-    if (serverParams.attendee) args["attendee"] = serverParams.attendee;
-    if (serverParams.limit !== undefined) args["limit"] = serverParams.limit;
+    if (attendee) args["attendee"] = attendee;
 
-    const result = await this.callTool("list_meetings", args, TIMEOUT_LIST);
+    const raw = await this.callTool("list_meetings", args, TIMEOUT_LIST);
+    const xmlStr = typeof raw === "string" ? raw : "";
 
-    // Apply client-side folder filter if requested
-    if (folder && Array.isArray(result)) {
-      return filterByFolder(result as Meeting[], folder);
+    let meetings = parseXmlMeetings(xmlStr);
+
+    // Client-side date filters
+    if (since) {
+      const sinceMs = new Date(since).getTime();
+      meetings = meetings.filter((m) =>
+        m.start_time ? new Date(m.start_time).getTime() >= sinceMs : true
+      );
+    }
+    if (until) {
+      const untilMs = new Date(until).getTime();
+      meetings = meetings.filter((m) =>
+        m.start_time ? new Date(m.start_time).getTime() <= untilMs : true
+      );
     }
 
-    return result;
+    // Sort descending by date (most recent first — consistent with web app)
+    meetings.sort((a, b) => {
+      const ta = a.start_time ? new Date(a.start_time).getTime() : 0;
+      const tb = b.start_time ? new Date(b.start_time).getTime() : 0;
+      return tb - ta;
+    });
+
+    if (limit !== undefined && limit > 0) {
+      meetings = meetings.slice(0, limit);
+    }
+
+    // Folder filter — folder_membership is not present in XML so this will
+    // always return empty results. Warn the user rather than silently returning nothing.
+    if (folder) {
+      const filtered = filterByFolder(meetings, folder);
+      if (filtered.length === 0 && meetings.length > 0) {
+        process.stderr.write(
+          `Warning: --folder filter has no effect because the API does not return folder data in list results.\n`
+        );
+      }
+      return filtered;
+    }
+
+    return meetings;
   }
 
-  async getMeetings(params: GetMeetingParams): Promise<unknown> {
+  async getMeetings(params: GetMeetingParams): Promise<MeetingDetail[]> {
     const args: Record<string, unknown> = {
       meeting_ids: params.meeting_ids,
     };
@@ -210,11 +389,32 @@ export class McpClient {
       args["include_enhanced_notes"] = params.include_enhanced_notes;
     }
 
-    return this.callTool("get_meetings", args, TIMEOUT_GET);
+    const raw = await this.callTool("get_meetings", args, TIMEOUT_GET);
+    const xmlStr = typeof raw === "string" ? raw : "";
+
+    return parseXmlMeetingDetail(xmlStr);
   }
 
-  async getTranscript(params: GetTranscriptParams): Promise<unknown> {
-    return this.callTool("get_meeting_transcript", { meeting_id: params.meeting_id }, TIMEOUT_TRANSCRIPT);
+  async getTranscript(params: GetTranscriptParams): Promise<TranscriptResult | null> {
+    const raw = await this.callTool(
+      "get_meeting_transcript",
+      { meeting_id: params.meeting_id },
+      TIMEOUT_TRANSCRIPT,
+    );
+
+    // Server returns JSON for transcripts: {id, title, transcript: string}
+    if (raw && typeof raw === "object") {
+      const r = raw as Record<string, unknown>;
+      if (typeof r["transcript"] === "string") {
+        return {
+          id:         String(r["id"] ?? params.meeting_id),
+          title:      String(r["title"] ?? ""),
+          transcript: r["transcript"] as string,
+        };
+      }
+    }
+
+    return null;
   }
 
   async query(params: QueryParams): Promise<unknown> {
@@ -226,6 +426,8 @@ export class McpClient {
 
 /**
  * Filter meetings by folder name or folder ID (case-insensitive).
+ * Note: folder_membership is not included in list_meetings XML responses —
+ * this filter only works if folder data is present on the meeting objects.
  */
 function filterByFolder(meetings: Meeting[], folder: string): Meeting[] {
   const normalized = folder.trim().toLowerCase();

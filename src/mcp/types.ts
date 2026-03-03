@@ -65,6 +65,20 @@ export interface GetMeetingParams {
 
 // --- get_meeting_transcript ---
 
+/**
+ * Actual shape returned by the get_meeting_transcript MCP tool.
+ * The server returns a flat text blob rather than structured segments.
+ */
+export interface TranscriptResult {
+  id: string;
+  title: string;
+  transcript: string; // plain text blob
+}
+
+/**
+ * Structured transcript segment — kept for tests and future use.
+ * @deprecated The live server returns TranscriptResult, not TranscriptSegment[].
+ */
 export interface TranscriptSegment {
   speaker?: string;
   text: string;

@@ -1,24 +1,28 @@
-# granola-cli
+# spoon
 
-A command-line interface for querying [Granola](https://granola.ai) AI meeting notes via Granola's MCP server.
+> a cli tool to consume your granola
+
+`spoon` is an unofficial command-line interface for [Granola](https://granola.ai) AI meeting notes, built on Granola's public MCP server.
 
 ```
-$ granola meetings list --since "last week"
-$ granola query "What action items came out of this week's standups?"
-$ granola meetings get abc123 --format markdown
-$ granola sync ./meetings
+$ spoon meetings list --since "last week"
+$ spoon query "What action items came out of this week's standups?"
+$ spoon meetings get abc123 --format markdown
+$ spoon sync ./meetings
 ```
+
+> **Disclaimer:** This project is not affiliated with, endorsed by, or supported by Granola AI. "Granola" is a trademark of its respective owner. This is an independent, community-built tool that uses Granola's publicly available MCP API.
 
 ## Installation
 
 ```bash
-npm install -g granola-cli
+npm install -g spoon-cli
 ```
 
 Or run without installing:
 
 ```bash
-npx granola-cli --help
+npx spoon-cli --help
 ```
 
 ## Running from source
@@ -26,24 +30,24 @@ npx granola-cli --help
 Clone the repo and run directly without publishing to npm:
 
 ```bash
-git clone https://github.com/your-org/granola-cli.git
-cd granola-cli
+git clone https://github.com/your-org/spoon-cli.git
+cd spoon-cli
 pnpm install
 pnpm build
 node dist/index.js --help
 ```
 
-To use `granola` as a global command from your local checkout:
+To use `spoon` as a global command from your local checkout:
 
 ```bash
 pnpm link --global
-granola --help
+spoon --help
 ```
 
 To unlink later:
 
 ```bash
-pnpm unlink --global granola-cli
+pnpm unlink --global spoon-cli
 ```
 
 ## Authentication
@@ -51,21 +55,21 @@ pnpm unlink --global granola-cli
 Granola uses OAuth 2.1. Run this once to authenticate:
 
 ```bash
-granola auth login
+spoon auth login
 ```
 
 Your browser will open for sign-in. The token is stored in `~/.granola/credentials.json` and refreshes automatically.
 
 ```bash
-granola auth status    # check authentication state
-granola auth logout    # revoke and clear credentials
+spoon auth status    # check authentication state
+spoon auth logout    # revoke and clear credentials
 ```
 
 **CI / headless environments:** Set `GRANOLA_TOKEN=<token>` to skip the OAuth flow entirely.
 
 ## Commands
 
-### `granola meetings list`
+### `spoon meetings list`
 
 List your meetings.
 
@@ -79,18 +83,18 @@ Options:
 ```
 
 ```bash
-granola meetings list
-granola meetings list --since "last week"
-granola meetings list --since 2024-01-01 --until 2024-02-01
-granola meetings list --attendee "Sarah" --limit 5
-granola meetings list --since "2 days ago" --format csv
+spoon meetings list
+spoon meetings list --since "last week"
+spoon meetings list --since 2024-01-01 --until 2024-02-01
+spoon meetings list --attendee "Sarah" --limit 5
+spoon meetings list --since "2 days ago" --format csv
 
 # Pipe to jq
-granola meetings list --format json | jq '.[].title'
-granola meetings list --format json | jq '.[0].id'
+spoon meetings list --format json | jq '.[].title'
+spoon meetings list --format json | jq '.[0].id'
 ```
 
-### `granola meetings get <id>`
+### `spoon meetings get <id>`
 
 Get the full content of a meeting by ID.
 
@@ -102,24 +106,24 @@ Options:
 ```
 
 ```bash
-granola meetings get abc123
-granola meetings get abc123 --format markdown
-granola meetings get abc123 --no-private --format json
+spoon meetings get abc123
+spoon meetings get abc123 --format markdown
+spoon meetings get abc123 --no-private --format json
 
 # Pipe a meeting ID from list
-granola meetings list --format json | jq -r '.[0].id' | xargs granola meetings get
+spoon meetings list --format json | jq -r '.[0].id' | xargs spoon meetings get
 ```
 
-### `granola meetings transcript <id>`
+### `spoon meetings transcript <id>`
 
 Get the raw word-for-word transcript of a meeting. Requires a Granola paid plan.
 
 ```bash
-granola meetings transcript abc123
-granola meetings transcript abc123 --format json
+spoon meetings transcript abc123
+spoon meetings transcript abc123 --format json
 ```
 
-### `granola query "<question>"`
+### `spoon query "<question>"`
 
 Ask a natural language question across all your meetings.
 
@@ -129,13 +133,13 @@ Options:
 ```
 
 ```bash
-granola query "What action items came out of this week's standups?"
-granola query "What did Sarah say about the Q4 roadmap?"
-granola query "Summarize all meetings from last week"
-granola query "Who mentioned the budget?" --format json
+spoon query "What action items came out of this week's standups?"
+spoon query "What did Sarah say about the Q4 roadmap?"
+spoon query "Summarize all meetings from last week"
+spoon query "Who mentioned the budget?" --format json
 ```
 
-### `granola sync <output-dir>`
+### `spoon sync <output-dir>`
 
 Mirror Granola meeting notes and transcripts to a local directory as Markdown files with YAML front-matter. Supports incremental sync — only fetches meetings since the last run.
 
@@ -153,22 +157,22 @@ Options:
 
 ```bash
 # Sync all meetings to a local directory
-granola sync ./meetings
+spoon sync ./meetings
 
 # Sync only meetings from last week
-granola sync ./meetings --since "last week"
+spoon sync ./meetings --since "last week"
 
 # Preview what would be synced
-granola sync ./meetings --dry-run
+spoon sync ./meetings --dry-run
 
 # Re-sync everything, overwriting existing files
-granola sync ./meetings --force
+spoon sync ./meetings --force
 
 # Skip transcripts and private notes
-granola sync ./meetings --no-transcripts --no-private
+spoon sync ./meetings --no-transcripts --no-private
 
 # Slow down requests to avoid rate limiting
-granola sync ./meetings --delay 500
+spoon sync ./meetings --delay 500
 ```
 
 **Output layout:**
@@ -187,13 +191,13 @@ Meeting files contain YAML front-matter (id, title, date, attendees, folders) fo
 
 Sync state is persisted at `~/.granola/sync-state.json` — running `sync` again only fetches new meetings.
 
-### `granola config`
+### `spoon config`
 
 Show the current configuration and file paths.
 
 ```bash
-granola config
-granola config --format json
+spoon config
+spoon config --format json
 ```
 
 ## Output Formats
@@ -210,16 +214,16 @@ Available formats for most commands: `json`, `table`, `csv`, `markdown`, `text`.
 
 ```bash
 # Human-readable in terminal
-granola meetings list
+spoon meetings list
 
 # JSON for scripting
-granola meetings list --format json | jq '.[].title'
+spoon meetings list --format json | jq '.[].title'
 
 # CSV for spreadsheets
-granola meetings list --format csv > meetings.csv
+spoon meetings list --format csv > meetings.csv
 
 # Markdown for notes
-granola meetings get abc123 --format markdown > meeting.md
+spoon meetings get abc123 --format markdown > meeting.md
 ```
 
 ## Exit Codes
@@ -236,7 +240,7 @@ Errors are written to **stderr** — as JSON when piped, colored text when inter
 
 ```bash
 # Structured error on stderr when piped
-granola meetings list 2>&1 | jq .error
+spoon meetings list 2>&1 | jq .error
 # → "auth_error"
 ```
 
@@ -248,35 +252,35 @@ granola meetings list 2>&1 | jq .error
 | `NO_COLOR` | Disable colored output ([no-color.org](https://no-color.org)) |
 
 ```bash
-GRANOLA_TOKEN=eyJ... granola meetings list
+GRANOLA_TOKEN=eyJ... spoon meetings list
 ```
 
 ## Scripting & AI Agent Usage
 
-`granola` outputs JSON when piped, making it easy to compose with other tools:
+`spoon` outputs JSON when piped, making it easy to compose with other tools:
 
 ```bash
 # Get all meeting IDs from last week
-granola meetings list --since "last week" --format json | jq -r '.[].id'
+spoon meetings list --since "last week" --format json | jq -r '.[].id'
 
 # Export a meeting to markdown
-granola meetings get abc123 --format markdown > standup-2024-01-15.md
+spoon meetings get abc123 --format markdown > standup-2024-01-15.md
 
 # Find action items across all recent meetings
-granola query "What are all the open action items?" | grep -i "TODO"
+spoon query "What are all the open action items?" | grep -i "TODO"
 
 # Use in a shell script
-ID=$(granola meetings list --format json | jq -r '.[0].id')
-granola meetings transcript "$ID" --format json > transcript.json
+ID=$(spoon meetings list --format json | jq -r '.[0].id')
+spoon meetings transcript "$ID" --format json > transcript.json
 
 # Mirror all meetings to local Markdown files
-granola sync ~/granola-backup
+spoon sync ~/granola-backup
 
 # Incremental backup (only new meetings since last run)
-granola sync ~/granola-backup --since "last week"
+spoon sync ~/granola-backup --since "last week"
 ```
 
-AI agents can discover all commands from `granola --help` with zero token overhead — no MCP tool definitions needed.
+AI agents can discover all commands from `spoon --help` with zero token overhead — no MCP tool definitions needed.
 
 ## Data & Credentials
 

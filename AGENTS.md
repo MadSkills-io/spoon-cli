@@ -1,7 +1,7 @@
-# Granola CLI — AI Agent Conventions
+# spoon — AI Agent Conventions
 
 ## Project Overview
-`granola-cli` is a command-line interface for querying Granola AI meeting notes via Granola's public MCP server (`https://mcp.granola.ai/mcp`).
+`spoon` (`spoon-cli`) is an unofficial command-line interface for querying Granola AI meeting notes via Granola's public MCP server (`https://mcp.granola.ai/mcp`). The CLI binary is named `spoon`.
 
 ## Tech Stack
 - **Language:** TypeScript (ESM, Node.js 20+)
@@ -25,13 +25,13 @@ Four layers: CLI → Service → MCP Client → Auth. Each layer has a single re
 
 ## Commands
 ```
-granola auth login|logout|status
-granola meetings list [--since] [--until] [--attendee] [--limit]
-granola meetings get <id> [--no-private] [--no-enhanced]
-granola meetings transcript <id>
-granola query "<question>" [--format]
-granola sync <output-dir> [--since] [--force] [--no-transcripts] [--no-private] [--batch-size] [--delay] [--dry-run] [--format]
-granola config
+spoon auth login|logout|status
+spoon meetings list [--since] [--until] [--attendee] [--limit]
+spoon meetings get <id> [--no-private] [--no-enhanced]
+spoon meetings transcript <id>
+spoon query "<question>" [--format]
+spoon sync <output-dir> [--since] [--force] [--no-transcripts] [--no-private] [--batch-size] [--delay] [--dry-run] [--format]
+spoon config
 ```
 
 ## Key Files
@@ -56,5 +56,5 @@ granola config
 pnpm install
 pnpm build
 node dist/index.js --help
-# or: pnpm link --global && granola --help
+# or: pnpm link --global && spoon --help
 ```

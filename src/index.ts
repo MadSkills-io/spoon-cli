@@ -13,8 +13,8 @@ import { closeMcpClient } from "./mcp/client.js";
 const program = new Command();
 
 program
-  .name("granola")
-  .description("CLI for querying Granola AI meeting notes via Granola's MCP server")
+  .name("spoon")
+  .description("A CLI tool to consume your Granola — query and sync Granola AI meeting notes")
   .version("0.1.0")
   .addHelpText("after", `
 Environment Variables:
@@ -34,13 +34,13 @@ Exit Codes:
   4  Not found
 
 Examples:
-  $ granola auth login
-  $ granola meetings list --since "last week"
-  $ granola meetings list --format json | jq '.[0].id'
-  $ granola meetings get <id> --format markdown
-  $ granola query "What were the action items from standup?"
-  $ granola sync ./meetings --since "last week"
-  $ GRANOLA_TOKEN=... granola meetings list`);
+  $ spoon auth login
+  $ spoon meetings list --since "last week"
+  $ spoon meetings list --format json | jq '.[0].id'
+  $ spoon meetings get <id> --format markdown
+  $ spoon query "What were the action items from standup?"
+  $ spoon sync ./meetings --since "last week"
+  $ GRANOLA_TOKEN=... spoon meetings list`);
 
 // Register subcommands
 registerAuthCommand(program);
@@ -78,7 +78,7 @@ Examples:
 // Handle unrecognized commands
 program.on("command:*", () => {
   console.error(chalk.red(`Unknown command: ${program.args.join(" ")}`));
-  console.error(`Run ${chalk.cyan("granola --help")} to see available commands.`);
+  console.error(`Run ${chalk.cyan("spoon --help")} to see available commands.`);
   process.exit(1);
 });
 

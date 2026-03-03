@@ -1,10 +1,10 @@
 {
-  "name": "granola-cli",
+  "name": "spoon-cli",
   "version": "0.1.0",
-  "description": "CLI for querying Granola AI meeting notes via Granola's MCP server",
+  "description": "A CLI tool to consume your Granola — query and sync Granola AI meeting notes via Granola's MCP server",
   "type": "module",
   "bin": {
-    "granola": "dist/index.js"
+    "spoon": "dist/index.js"
   },
   "main": "dist/index.js",
   "files": [
@@ -33,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/granola-cli/granola-cli"
+    "url": "https://github.com/granola-cli/spoon-cli"
   },
   "publishConfig": {
     "access": "public"

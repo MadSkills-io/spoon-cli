@@ -30,6 +30,7 @@ granola meetings list [--since] [--until] [--attendee] [--limit]
 granola meetings get <id> [--no-private] [--no-enhanced]
 granola meetings transcript <id>
 granola query "<question>" [--format]
+granola sync <output-dir> [--since] [--force] [--no-transcripts] [--no-private] [--batch-size] [--delay] [--dry-run] [--format]
 granola config
 ```
 
@@ -39,6 +40,10 @@ granola config
 - `src/auth/oauth.ts` — OAuth 2.1 + PKCE + DCR flow
 - `src/auth/token-store.ts` — Credential persistence
 - `src/commands/` — Command implementations
+- `src/commands/sync.ts` — Sync command (mirrors meetings to local Markdown files)
+- `src/sync/state.ts` — Sync state persistence (`~/.granola/sync-state.json`)
+- `src/sync/writer.ts` — Markdown file writer (meeting notes + transcripts)
+- `src/utils/retry.ts` — `withRetry()` exponential-backoff utility for rate-limited calls
 - `src/output/formatter.ts` — Output formatting
 
 ## Testing

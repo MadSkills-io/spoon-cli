@@ -6,6 +6,7 @@ A command-line interface for querying [Granola](https://granola.ai) AI meeting n
 $ granola meetings list --since "last week"
 $ granola query "What action items came out of this week's standups?"
 $ granola meetings get abc123 --format markdown
+$ granola sync ./meetings
 ```
 
 ## Installation
@@ -109,6 +110,58 @@ granola query "Summarize all meetings from last week"
 granola query "Who mentioned the budget?" --format json
 ```
 
+### `granola sync <output-dir>`
+
+Mirror Granola meeting notes and transcripts to a local directory as Markdown files with YAML front-matter. Supports incremental sync — only fetches meetings since the last run.
+
+```
+Options:
+  --since <date>      Override incremental sync; start from this date
+  --force             Re-sync all meetings (ignores last-run state)
+  --no-transcripts    Skip transcript fetching
+  --no-private        Exclude private notes from meeting files
+  --batch-size <n>    IDs per get_meetings call (default: 5)
+  --delay <ms>        Delay between MCP calls in ms (default: 200)
+  --dry-run           List meetings that would sync, don't write files
+  --format <fmt>      Progress output format: text, json
+```
+
+```bash
+# Sync all meetings to a local directory
+granola sync ./meetings
+
+# Sync only meetings from last week
+granola sync ./meetings --since "last week"
+
+# Preview what would be synced
+granola sync ./meetings --dry-run
+
+# Re-sync everything, overwriting existing files
+granola sync ./meetings --force
+
+# Skip transcripts and private notes
+granola sync ./meetings --no-transcripts --no-private
+
+# Slow down requests to avoid rate limiting
+granola sync ./meetings --delay 500
+```
+
+**Output layout:**
+
+```
+meetings/
+  _unfiled/                              # meetings with no folder
+    2024-01-16-standup.md
+    2024-01-16-standup.transcript.md
+  Planning/                              # one dir per Granola folder
+    2024-01-15-q1-planning-session.md
+    2024-01-15-q1-planning-session.transcript.md
+```
+
+Meeting files contain YAML front-matter (id, title, date, attendees, folders) followed by Summary, Notes, and Private Notes sections. Transcript files contain speaker-attributed, timestamped dialogue.
+
+Sync state is persisted at `~/.granola/sync-state.json` — running `sync` again only fetches new meetings.
+
 ### `granola config`
 
 Show the current configuration and file paths.
@@ -190,6 +243,12 @@ granola query "What are all the open action items?" | grep -i "TODO"
 # Use in a shell script
 ID=$(granola meetings list --format json | jq -r '.[0].id')
 granola meetings transcript "$ID" --format json > transcript.json
+
+# Mirror all meetings to local Markdown files
+granola sync ~/granola-backup
+
+# Incremental backup (only new meetings since last run)
+granola sync ~/granola-backup --since "last week"
 ```
 
 AI agents can discover all commands from `granola --help` with zero token overhead — no MCP tool definitions needed.
@@ -203,7 +262,8 @@ All credentials and config are stored in `~/.granola/`:
 ├── credentials.json   # Access + refresh tokens (chmod 0600)
 ├── client.json        # OAuth client registration (cached)
 ├── config.json        # CLI preferences
-└── discovery.json     # OAuth server metadata (cached)
+├── discovery.json     # OAuth server metadata (cached)
+└── sync-state.json    # Incremental sync state (last run, synced meeting IDs)
 ```
 
 ## Requirements

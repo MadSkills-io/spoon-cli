@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { registerAuthCommand } from "./commands/auth.js";
 import { registerMeetingsCommand } from "./commands/meetings.js";
 import { registerQueryCommand } from "./commands/query.js";
+import { registerSyncCommand } from "./commands/sync.js";
 import { loadConfig, getConfigPath } from "./utils/config.js";
 import { getGranolaDir } from "./auth/token-store.js";
 import { output, resolveFormat } from "./output/formatter.js";
@@ -38,12 +39,14 @@ Examples:
   $ granola meetings list --format json | jq '.[0].id'
   $ granola meetings get <id> --format markdown
   $ granola query "What were the action items from standup?"
+  $ granola sync ./meetings --since "last week"
   $ GRANOLA_TOKEN=... granola meetings list`);
 
 // Register subcommands
 registerAuthCommand(program);
 registerMeetingsCommand(program);
 registerQueryCommand(program);
+registerSyncCommand(program);
 
 // --- config command ---
 program

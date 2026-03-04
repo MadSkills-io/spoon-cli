@@ -10,10 +10,10 @@ export function registerQueryCommand(program: Command): void {
     .option("--format <format>", "Output format: json, table, text")
     .addHelpText("after", `
 Examples:
-  $ granola query "What action items came out of this week's standups?"
-  $ granola query "What did Sarah say about the Q4 roadmap?"
-  $ granola query "Summarize all meetings from last week" --format json
-  $ granola query "Who mentioned the budget?" --format text`)
+  $ spoon query "What action items came out of this week's standups?"
+  $ spoon query "What did Sarah say about the Q4 roadmap?"
+  $ spoon query "Summarize all meetings from last week" --format json
+  $ spoon query "Who mentioned the budget?" --format text`)
     .action(async (question: string, options: { format?: string }) => {
       try {
         const client = getMcpClient();

@@ -91,8 +91,8 @@ export async function registerClient(
     token_endpoint_auth_method: "none",
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
-    client_name: "Granola CLI",
-    client_uri: "https://github.com/granola-cli",
+    client_name: "Spoon CLI",
+    client_uri: "https://github.com/MadSkills-io/spoon-cli",
   } as unknown as OAuthClientMetadata;
 
   const res = await fetch(endpoint, {

@@ -26,7 +26,7 @@ describe("Error Classification", () => {
     });
 
     it("classifies auth errors by message containing 'not authenticated'", () => {
-      const result = classifyError(new Error("Not authenticated. Run: granola auth login"));
+      const result = classifyError(new Error("Not authenticated. Run: spoon auth login"));
       expect(result.exitCode).toBe(EXIT_AUTH_ERROR);
     });
 

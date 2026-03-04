@@ -55,8 +55,8 @@ program
   .option("--format <format>", "Output format: json, table, text")
   .addHelpText("after", `
 Examples:
-  $ granola config
-  $ granola config --format json`)
+  $ spoon config
+  $ spoon config --format json`)
   .action(async (options: { format?: string }) => {
     try {
       const config = loadConfig();

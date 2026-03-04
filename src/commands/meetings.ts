@@ -21,14 +21,14 @@ export function registerMeetingsCommand(program: Command): void {
     .option("--format <format>", "Output format: json, table, csv, markdown, text")
     .addHelpText("after", `
 Examples:
-  $ granola meetings list
-  $ granola meetings list --since "last week"
-  $ granola meetings list --since 2024-01-01 --until 2024-02-01
-  $ granola meetings list --attendee "Sarah" --limit 5
-  $ granola meetings list --folder "Planning"
-  $ granola meetings list --folder "Planning" --since "last week"
-  $ granola meetings list --format json | jq '.[].title'
-  $ granola meetings list --since "2 days ago" --format csv`)
+  $ spoon meetings list
+  $ spoon meetings list --since "last week"
+  $ spoon meetings list --since 2024-01-01 --until 2024-02-01
+  $ spoon meetings list --attendee "Sarah" --limit 5
+  $ spoon meetings list --folder "Planning"
+  $ spoon meetings list --folder "Planning" --since "last week"
+  $ spoon meetings list --format json | jq '.[].title'
+  $ spoon meetings list --since "2 days ago" --format csv`)
     .action(async (options: {
       since?: string;
       until?: string;
@@ -93,9 +93,9 @@ Examples:
     .option("--format <format>", "Output format: json, table, csv, markdown, text")
     .addHelpText("after", `
 Examples:
-  $ granola meetings get abc123
-  $ granola meetings get abc123 --format markdown
-  $ granola meetings get abc123 --no-private --format json`)
+  $ spoon meetings get abc123
+  $ spoon meetings get abc123 --format markdown
+  $ spoon meetings get abc123 --no-private --format json`)
     .action(async (id: string, options: {
       private?: boolean;
       enhanced?: boolean;
@@ -132,9 +132,9 @@ Examples:
     .option("--format <format>", "Output format: json, table, csv, markdown, text")
     .addHelpText("after", `
 Examples:
-  $ granola meetings transcript abc123
-  $ granola meetings transcript abc123 --format json
-  $ granola meetings transcript abc123 --format text`)
+  $ spoon meetings transcript abc123
+  $ spoon meetings transcript abc123 --format json
+  $ spoon meetings transcript abc123 --format text`)
     .action(async (id: string, options: { format?: string }) => {
       try {
         const client = getMcpClient();

@@ -15,7 +15,7 @@ export function registerAuthCommand(program: Command): void {
     .description("Authenticate with Granola via browser OAuth flow")
     .addHelpText("after", `
 Examples:
-  $ granola auth login          # Opens browser for OAuth
+  $ spoon auth login          # Opens browser for OAuth
   $ GRANOLA_TOKEN=... granola   # Skip OAuth, use env var token`)
     .action(async () => {
       try {
@@ -33,7 +33,7 @@ Examples:
             const hours = Math.round(tokens.expires_in / 3600);
             console.log(chalk.dim(`  Token expires in ~${hours} hours.`));
           }
-          console.log(chalk.dim("  Run `granola auth status` to verify."));
+          console.log(chalk.dim("  Run `spoon auth status` to verify."));
         } else {
           console.log(JSON.stringify({ success: true }));
         }
@@ -47,7 +47,7 @@ Examples:
     .description("Revoke credentials and clear stored tokens")
     .addHelpText("after", `
 Examples:
-  $ granola auth logout`)
+  $ spoon auth logout`)
     .action(async () => {
       try {
         await logout();
@@ -68,8 +68,8 @@ Examples:
     .option("--format <format>", "Output format (json, table, text)")
     .addHelpText("after", `
 Examples:
-  $ granola auth status
-  $ granola auth status --format json`)
+  $ spoon auth status
+  $ spoon auth status --format json`)
     .action(async (options: { format?: string }) => {
       try {
         const status = getAuthStatus();
@@ -99,7 +99,7 @@ Examples:
             }
           } else {
             console.log(chalk.yellow("✗ Not authenticated"));
-            console.log(chalk.dim("  Run: granola auth login"));
+            console.log(chalk.dim("  Run: spoon auth login"));
           }
         }
       } catch (error) {

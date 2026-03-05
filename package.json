@@ -1,6 +1,6 @@
 {
   "name": "spoon-cli",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "A CLI tool to consume your Granola — query and sync Granola AI meeting notes via Granola's MCP server",
   "type": "module",
   "bin": {

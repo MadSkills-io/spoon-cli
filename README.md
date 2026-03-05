@@ -78,7 +78,7 @@ Options:
   --since <date>     Show meetings since date (ISO 8601 or natural language)
   --until <date>     Show meetings until date (ISO 8601 or natural language)
   --attendee <name>  Filter by attendee name or email
-  --limit <n>        Maximum number of meetings to return (default: 20)
+  --limit <n>        Cap the number of results (default: all meetings in range)
   --format <format>  json | table | csv | markdown | text
 ```
 
@@ -146,6 +146,7 @@ Mirror Granola meeting notes and transcripts to a local directory as Markdown fi
 ```
 Options:
   --since <date>    Override incremental sync; start from this date
+  --until <date>    Only sync meetings up to this date
   --force           Re-sync all meetings (ignores last-run state)
   --transcripts     Also fetch transcripts (see rate limit warning below)
   --no-private      Exclude private notes from meeting files
@@ -163,6 +164,9 @@ spoon sync ./meetings
 
 # Sync only meetings from last week
 spoon sync ./meetings --since "last week"
+
+# Sync a specific date range
+spoon sync ./meetings --since "2025-12-01" --until "2026-01-31"
 
 # Preview what would be synced
 spoon sync ./meetings --dry-run

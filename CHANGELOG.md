@@ -11,6 +11,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.6] — 2026-03-04
+
+### Added
+- **`spoon sync --until <date>`** — sync only meetings up to a given date. Accepts the same ISO 8601 and natural-language formats as `--since`. Can be used alone or combined with `--since` for an exact date window (e.g. `--since "2025-12-01" --until "2026-01-31"`). The progress message reflects the range: `from … to …`, `since …`, `until …`, or `(all time)`.
+
+---
+
 ## [0.2.5] — 2026-03-04
 
 ### Fixed
@@ -115,7 +122,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...v0.2.3

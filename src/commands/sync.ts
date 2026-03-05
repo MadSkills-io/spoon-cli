@@ -18,6 +18,7 @@ import { isTTY } from "../utils/tty.js";
 
 interface SyncOptions {
   since?: string;
+  until?: string;
   force?: boolean;
   transcripts?: boolean;
   private?: boolean;
@@ -32,6 +33,7 @@ export function registerSyncCommand(program: Command): void {
     .command("sync <output-dir>")
     .description("Mirror Granola meeting notes and transcripts to a local directory")
     .option("--since <date>", "Override incremental sync; start from this date")
+    .option("--until <date>", "Only sync meetings up to this date")
     .option("--force", "Re-sync all meetings (ignores last-run state)")
     .option("--transcripts", "Also fetch transcripts (warning: very strict rate limit — ~2 calls per 7 min)")
     .option("--no-private", "Exclude private notes from meeting files")
@@ -47,6 +49,7 @@ Notes:
 Examples:
   $ spoon sync ./meetings
   $ spoon sync ./meetings --since "last week"
+  $ spoon sync ./meetings --since "2025-12-01" --until "2026-01-31"
   $ spoon sync ./meetings --force
   $ spoon sync ./meetings --dry-run
   $ spoon sync ./meetings --transcripts    # fetch transcripts (slow)
@@ -73,9 +76,10 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
   const useJson = options.format === "json";
   const useTTY = isTTY() && !useJson;
 
-  // 1. Load sync state and determine `since` date
+  // 1. Load sync state and determine `since` / `until` dates
   const state = loadSyncState();
   let since: string | undefined;
+  let until: string | undefined;
 
   if (options.since) {
     const parsed = parseDate(options.since);
@@ -88,17 +92,30 @@ async function runSync(outputDirArg: string, options: SyncOptions): Promise<void
     since = state.lastSyncAt;
   }
 
+  if (options.until) {
+    const parsed = parseDate(options.until);
+    if (!parsed) {
+      writeError(`Could not parse date: "${options.until}"`, EXIT_ERROR);
+      process.exit(EXIT_ERROR);
+    }
+    until = parsed;
+  }
+
   if (includeTranscripts) {
     const warn = "⚠  Transcript fetching is enabled. The API allows ~2 transcript calls per ~7 minutes. Expect long pauses.";
     process.stderr.write(chalk.yellow(warn) + "\n");
   }
 
-  logLine(useJson, `Syncing meetings${since ? ` since ${since}` : " (all time)"}...`);
+  const rangeDesc = since && until ? ` from ${since} to ${until}`
+    : since ? ` since ${since}`
+    : until ? ` until ${until}`
+    : " (all time)";
+  logLine(useJson, `Syncing meetings${rangeDesc}...`);
 
   // 2. List meetings
   const client = getMcpClient();
   const allMeetings = await withRetry(
-    () => client.listMeetings(since ? { since } : {}),
+    () => client.listMeetings({ ...(since ? { since } : {}), ...(until ? { until } : {}) }),
   ) as Meeting[];
 
   // 3. Filter out already-synced meetings (unless --force)

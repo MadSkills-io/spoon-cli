@@ -323,9 +323,15 @@ export class McpClient {
   // --- High-level tool wrappers ---
 
   /**
-   * List meetings. The server ignores since/until/limit — filtering is applied
-   * client-side after parsing the XML response. The attendee param is sent to
-   * the server as it is honoured server-side.
+   * List meetings.
+   *
+   * The server accepts a time_range enum (this_week | last_week | last_30_days | custom)
+   * plus optional custom_start / custom_end ISO date strings. It does NOT accept
+   * free-form since/until/limit — those are applied client-side after parsing.
+   *
+   * Default (no params): last_30_days.
+   * When since is provided: custom range from since → until (or today).
+   * The server's earliest data appears to be ~Dec 2025 regardless of custom_start.
    */
   async listMeetings(params: ListMeetingsParams = {}): Promise<Meeting[]> {
     const { folder, since, until, limit, attendee } = params;
@@ -333,24 +339,22 @@ export class McpClient {
     const args: Record<string, unknown> = {};
     if (attendee) args["attendee"] = attendee;
 
+    if (since) {
+      // Use custom range so the server returns meetings back to the requested date
+      args["time_range"] = "custom";
+      args["custom_start"] = since.slice(0, 10); // ISO date only: YYYY-MM-DD
+      args["custom_end"] = until
+        ? until.slice(0, 10)
+        : new Date().toISOString().slice(0, 10);
+    } else {
+      // Default: server's own last_30_days window
+      args["time_range"] = "last_30_days";
+    }
+
     const raw = await this.callTool("list_meetings", args, TIMEOUT_LIST);
     const xmlStr = typeof raw === "string" ? raw : "";
 
     let meetings = parseXmlMeetings(xmlStr);
-
-    // Client-side date filters
-    if (since) {
-      const sinceMs = new Date(since).getTime();
-      meetings = meetings.filter((m) =>
-        m.start_time ? new Date(m.start_time).getTime() >= sinceMs : true
-      );
-    }
-    if (until) {
-      const untilMs = new Date(until).getTime();
-      meetings = meetings.filter((m) =>
-        m.start_time ? new Date(m.start_time).getTime() <= untilMs : true
-      );
-    }
 
     // Sort descending by date (most recent first — consistent with web app)
     meetings.sort((a, b) => {

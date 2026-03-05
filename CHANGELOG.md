@@ -11,6 +11,19 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.5] — 2026-03-04
+
+### Fixed
+- **`--since` / `--until` now actually work** — the `list_meetings` API schema changed to use a `time_range` enum (`this_week` | `last_week` | `last_30_days` | `custom`) with `custom_start` / `custom_end` ISO date params (`additionalProperties: false`). Our previous code sent unknown parameters that the server silently ignored, always returning the default last-30-days window. Now `--since` maps to `time_range: "custom"` with the correct `custom_start` / `custom_end` fields.
+- **`--limit` no longer defaults to 20** — the default was silently truncating results to 20, making it appear that only recent meetings existed. `--limit` is now opt-in; omitting it returns all meetings in the requested range.
+
+### Changed
+- Default `spoon meetings list` (no flags) returns the server's `last_30_days` window (up to ~64 meetings).
+- `spoon meetings list --since <date>` uses the server's `custom` range — returns all meetings back to the earliest data the server holds (~Dec 2025).
+- `--limit <n>` is applied client-side after the server response and caps to the N most recent meetings.
+
+---
+
 ## [0.2.4] — 2026-03-03
 
 ### Fixed
@@ -102,7 +115,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.1...v0.2.2

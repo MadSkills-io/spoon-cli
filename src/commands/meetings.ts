@@ -17,7 +17,7 @@ export function registerMeetingsCommand(program: Command): void {
     .option("--until <date>", "Show meetings until date (ISO 8601 or natural language)")
     .option("--attendee <name>", "Filter by attendee name or email")
     .option("--folder <name>", "Filter by folder name or ID (client-side)")
-    .option("--limit <n>", "Maximum number of meetings to return", "20")
+    .option("--limit <n>", "Cap the number of results (default: all meetings in range)")
     .option("--format <format>", "Output format: json, table, csv, markdown, text")
     .addHelpText("after", `
 Examples:

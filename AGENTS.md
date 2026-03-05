@@ -111,9 +111,14 @@ These were discovered through live testing. Characterize again if symptoms chang
 - `query_granola_meetings` → returns JSON `{answer, sources}`.
 
 ### Filtering
-- `--since`, `--until`, `--limit` are **ignored by the server** for `list_meetings`. Applied client-side after parsing.
+- `list_meetings` accepts `time_range` enum: `this_week` | `last_week` | `last_30_days` | `custom` (default: `last_30_days`).
+- Custom range uses `custom_start` + `custom_end` (ISO date strings: `YYYY-MM-DD`).
+- The server's `additionalProperties: false` means unknown params (e.g. `since`, `start_date`) are silently ignored — always use the documented schema.
+- `--since` / `--until` in our CLI map to `time_range: "custom"` + `custom_start` / `custom_end` sent to the server.
+- `--limit` is applied client-side (no server param).
 - `--attendee` is honoured server-side.
 - `folder_membership` is **not present** in XML responses — `--folder` filtering cannot work and warns the user.
+- Earliest data the server returns appears to be ~Dec 2025 regardless of `custom_start`.
 
 ### Rate limits (measured 2026-03-03)
 | Endpoint | Limit |

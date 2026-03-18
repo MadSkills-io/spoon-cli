@@ -74,7 +74,7 @@ spoon config [--format]
 - `src/commands/query.ts` — query command
 - `src/commands/sync.ts` — sync command (progress bar, batching, wall-clock throttle, retry, state)
 - `src/sync/state.ts` — load/save `~/.spoon/sync-state.json`
-- `src/sync/writer.ts` — slugify, getMeetingDir, writeMeetingFile, writeTranscriptFileFromText
+- `src/sync/writer.ts` — slugify, getMeetingDir, writeMeetingFile, writeTranscriptFileFromText; filenames use `YYYY-MM-DD-slug-SHORTID` (last 8 chars of meeting ID) to prevent clobbering when same-named meetings occur on the same day
 - `src/utils/retry.ts` — `withRetry()` exponential-backoff (default base 10s → 10s/20s/40s/80s, max 4 attempts)
 - `src/utils/config.ts` — `GranolaConfig` load/save (`~/.spoon/config.json`)
 - `src/utils/dates.ts` — `parseDate()` (ISO 8601 + natural language via chrono-node)

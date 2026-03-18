@@ -186,12 +186,14 @@ spoon sync ./meetings --no-private
 ```
 meetings/
   _unfiled/                              # meetings with no folder
-    2024-01-16-standup.md
-    2024-01-16-standup.transcript.md
+    2024-01-16-standup-abc12345.md
+    2024-01-16-standup-abc12345.transcript.md
   Planning/                              # one dir per Granola folder
-    2024-01-15-q1-planning-session.md
-    2024-01-15-q1-planning-session.transcript.md
+    2024-01-15-q1-planning-session-def67890.md
+    2024-01-15-q1-planning-session-def67890.transcript.md
 ```
+
+Filenames use the pattern `YYYY-MM-DD-title-SHORTID` where `SHORTID` is the last 8 characters of the meeting's unique ID. This ensures multiple meetings with the same title on the same day never overwrite each other.
 
 Meeting files contain YAML front-matter (id, title, date, attendees, folders) followed by Summary, Notes, and Private Notes sections. Transcript files contain speaker-attributed, timestamped dialogue.
 

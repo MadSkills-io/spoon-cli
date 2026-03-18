@@ -57,19 +57,19 @@ describe("slugify", () => {
 });
 
 describe("buildFilePrefix", () => {
-  it("builds YYYY-MM-DD-slug prefix", () => {
+  it("builds YYYY-MM-DD-slug-shortid prefix", () => {
     const meeting = {
-      id: "m1",
+      id: "meeting-abc12345",
       title: "Q1 Planning Session",
       start_time: "2024-01-15T09:00:00Z",
     } as MeetingDetail;
 
-    expect(buildFilePrefix(meeting)).toBe("2024-01-15-q1-planning-session");
+    expect(buildFilePrefix(meeting)).toBe("2024-01-15-q1-planning-session-abc12345");
   });
 
   it("uses 'undated' when start_time is missing", () => {
-    const meeting = { id: "m1", title: "Standup" } as MeetingDetail;
-    expect(buildFilePrefix(meeting)).toBe("undated-standup");
+    const meeting = { id: "meeting-abc12345", title: "Standup" } as MeetingDetail;
+    expect(buildFilePrefix(meeting)).toBe("undated-standup-abc12345");
   });
 
   it("falls back to meeting ID when title is empty", () => {
@@ -79,7 +79,38 @@ describe("buildFilePrefix", () => {
       start_time: "2024-03-01T10:00:00Z",
     } as MeetingDetail;
 
-    expect(buildFilePrefix(meeting)).toBe("2024-03-01-meeting-xyz");
+    expect(buildFilePrefix(meeting)).toBe("2024-03-01-meeting-xyz-ting-xyz");
+  });
+
+  it("disambiguates meetings with same title on same day", () => {
+    const meetingA = {
+      id: "meeting-aaa11111",
+      title: "Standup",
+      start_time: "2024-01-15T09:00:00Z",
+    } as MeetingDetail;
+
+    const meetingB = {
+      id: "meeting-bbb22222",
+      title: "Standup",
+      start_time: "2024-01-15T14:00:00Z",
+    } as MeetingDetail;
+
+    const prefixA = buildFilePrefix(meetingA);
+    const prefixB = buildFilePrefix(meetingB);
+
+    expect(prefixA).not.toBe(prefixB);
+    expect(prefixA).toBe("2024-01-15-standup-aaa11111");
+    expect(prefixB).toBe("2024-01-15-standup-bbb22222");
+  });
+
+  it("uses last 8 chars of meeting ID as short suffix", () => {
+    const meeting = {
+      id: "doc_abcdefghijklmn",
+      title: "Review",
+      start_time: "2024-06-01T10:00:00Z",
+    } as MeetingDetail;
+
+    expect(buildFilePrefix(meeting)).toBe("2024-06-01-review-ghijklmn");
   });
 });
 
@@ -267,7 +298,7 @@ describe("renderTranscriptMarkdown", () => {
 describe("writeMeetingFile", () => {
   it("writes a .md file and returns the path", () => {
     const meeting: MeetingDetail = {
-      id: "m1",
+      id: "meeting-abc12345",
       title: "Standup",
       start_time: "2024-01-16T10:00:00Z",
       summary: "Daily standup meeting.",
@@ -276,17 +307,17 @@ describe("writeMeetingFile", () => {
     const outputDir = join(testDir, "output", "_unfiled");
     const filePath = writeMeetingFile(outputDir, meeting);
 
-    expect(filePath).toContain("2024-01-16-standup.md");
+    expect(filePath).toContain("2024-01-16-standup-abc12345.md");
     expect(existsSync(filePath)).toBe(true);
 
     const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("id: m1");
+    expect(content).toContain("id: meeting-abc12345");
     expect(content).toContain("Daily standup meeting.");
   });
 
   it("creates parent directories recursively", () => {
     const meeting: MeetingDetail = {
-      id: "m2",
+      id: "meeting-def67890",
       title: "Deep Nested",
       start_time: "2024-02-01T10:00:00Z",
     };
@@ -300,7 +331,7 @@ describe("writeMeetingFile", () => {
 describe("writeTranscriptFile", () => {
   it("writes a .transcript.md file and returns the path", () => {
     const meeting: MeetingDetail = {
-      id: "m1",
+      id: "meeting-abc12345",
       title: "Standup",
       start_time: "2024-01-16T10:00:00Z",
     };
@@ -312,7 +343,7 @@ describe("writeTranscriptFile", () => {
     const outputDir = join(testDir, "transcripts");
     const filePath = writeTranscriptFile(outputDir, meeting, segments);
 
-    expect(filePath).toContain("2024-01-16-standup.transcript.md");
+    expect(filePath).toContain("2024-01-16-standup-abc12345.transcript.md");
     expect(existsSync(filePath)).toBe(true);
 
     const content = readFileSync(filePath, "utf-8");
@@ -360,7 +391,7 @@ describe("renderTranscriptMarkdownFromText", () => {
 describe("writeTranscriptFileFromText", () => {
   it("writes a .transcript.md file and returns the correct path", () => {
     const meeting: MeetingDetail = {
-      id: "m1",
+      id: "meeting-abc12345",
       title: "Standup",
       start_time: "2024-01-16T10:00:00Z",
     };
@@ -368,7 +399,7 @@ describe("writeTranscriptFileFromText", () => {
     const outputDir = join(testDir, "text-transcripts");
     const filePath = writeTranscriptFileFromText(outputDir, meeting, "Hello world.");
 
-    expect(filePath).toContain("2024-01-16-standup.transcript.md");
+    expect(filePath).toContain("2024-01-16-standup-abc12345.transcript.md");
     expect(existsSync(filePath)).toBe(true);
 
     const content = readFileSync(filePath, "utf-8");
@@ -378,7 +409,7 @@ describe("writeTranscriptFileFromText", () => {
 
   it("creates parent directories recursively", () => {
     const meeting: MeetingDetail = {
-      id: "m2",
+      id: "meeting-def67890",
       title: "Deep Nested",
       start_time: "2024-02-01T10:00:00Z",
     };
@@ -390,13 +421,13 @@ describe("writeTranscriptFileFromText", () => {
 
   it("includes id in front-matter", () => {
     const meeting: MeetingDetail = {
-      id: "abc-123",
+      id: "abc-12345678",
       title: "Test",
       start_time: "2024-03-01T08:00:00Z",
     };
 
     const filePath = writeTranscriptFileFromText(testDir, meeting, "content");
     const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("id: abc-123");
+    expect(content).toContain("id: abc-12345678");
   });
 });

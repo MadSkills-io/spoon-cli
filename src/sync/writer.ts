@@ -19,15 +19,19 @@ export function slugify(title: string): string {
 }
 
 /**
- * Build a filename prefix: YYYY-MM-DD-slugified-title
- * Falls back to the meeting ID when the title is empty.
+ * Build a filename prefix: YYYY-MM-DD-slugified-title-SHORT_ID
+ *
+ * A short suffix derived from the meeting ID is always appended to
+ * disambiguate multiple meetings with the same title on the same day.
+ * Falls back to the full meeting ID as the slug when the title is empty.
  */
 export function buildFilePrefix(meeting: MeetingDetail): string {
   const dateStr = meeting.start_time
     ? new Date(meeting.start_time).toISOString().slice(0, 10)
     : "undated";
   const slug = meeting.title ? slugify(meeting.title) : meeting.id;
-  return `${dateStr}-${slug}`;
+  const shortId = meeting.id.slice(-8);
+  return `${dateStr}-${slug}-${shortId}`;
 }
 
 /**

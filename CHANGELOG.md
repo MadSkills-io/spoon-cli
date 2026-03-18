@@ -11,6 +11,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.3.0] — 2026-03-18
+
+### Added
+- **`spoon mcp` command group** — six subcommands for protocol-level MCP server introspection:
+  - `spoon mcp ping` — health check with round-trip latency (`Pong (N ms)`)
+  - `spoon mcp info` — server version, capabilities checklist, and instructions
+  - `spoon mcp tools` — list all tools with descriptions and typed/annotated input schemas; text format shows per-parameter type, enum values, required markers, and descriptions
+  - `spoon mcp call <tool> [json]` — call any MCP tool by name with raw JSON arguments; returns raw server output (no XML/JSON unwrapping); supports piped stdin (`echo '{"key":"val"}' | spoon mcp call tool`); `isError` responses write to stderr and exit 1
+  - `spoon mcp resources` — list server resources and resource templates; gracefully degrades to "No resources available." if the server doesn't support them
+  - `spoon mcp prompts` — list server prompts; gracefully degrades to "No prompts available."
+- All `mcp` subcommands support `--format` (json/table/text/markdown/csv) with standard TTY auto-detection
+- `callToolRaw()` added to `McpClient` — like `callTool()` with 401-retry, but returns the raw `CallToolResult` without XML parsing or JSON unwrapping
+- Protocol-level methods added to `McpClient`: `ping()`, `getServerInfo()`, `listTools()`, `listResources()`, `listResourceTemplates()`, `listPrompts()`
+
+---
+
 ## [0.2.7] — 2026-03-18
 
 ### Fixed
@@ -132,7 +148,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.7...v0.3.0
 [0.2.7]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...v0.2.5

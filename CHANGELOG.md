@@ -11,6 +11,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ---
 
+## [0.2.7] — 2026-03-18
+
+### Fixed
+- **Sync no longer clobbers same-named meetings on the same day** — filenames now include a short ID suffix (last 8 characters of the meeting's unique ID), changing the pattern from `YYYY-MM-DD-title.md` to `YYYY-MM-DD-title-SHORTID.md`. Previously, if two meetings shared the same title and date, the last one synced would silently overwrite the first.
+
+### ⚠️ Migration note
+Existing synced files use the old naming format. Running `spoon sync --force` will re-sync all meetings with the new naming convention, but old files are **not** automatically cleaned up. Delete the output directory first for a clean slate, or leave both old and new files in place.
+
+---
+
 ## [0.2.6] — 2026-03-04
 
 ### Added
@@ -122,7 +132,8 @@ Initial release.
 - Exponential-backoff retry on rate-limited MCP calls (`withRetry()`)
 - Incremental sync state persisted at `~/.spoon/sync-state.json`
 
-[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.7...HEAD
+[0.2.7]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/MadSkills-io/spoon-cli/compare/v0.2.3...v0.2.4

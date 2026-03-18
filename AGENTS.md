@@ -10,7 +10,7 @@
 
 - **npm:** `npm install -g spoon-cli`
 - **Repo:** `https://github.com/MadSkills-io/spoon-cli`
-- **Current version:** `0.2.3`
+- **Current version:** `0.2.7`
 
 ---
 

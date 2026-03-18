@@ -320,6 +320,103 @@ export class McpClient {
     this.transport = null;
   }
 
+  // --- Protocol-level methods ---
+
+  /**
+   * Ping the MCP server. Returns round-trip latency in milliseconds.
+   */
+  async ping(): Promise<number> {
+    const client = await this.connect();
+    const start = performance.now();
+    await client.ping();
+    return Math.round(performance.now() - start);
+  }
+
+  /**
+   * Return server info populated during the initialize handshake.
+   */
+  getServerInfo(): {
+    serverInfo?: { name?: string; version?: string };
+    capabilities?: Record<string, unknown>;
+    instructions?: string;
+  } {
+    if (!this.client) {
+      throw new Error("Not connected. Call connect() first.");
+    }
+    return {
+      serverInfo: this.client.getServerVersion(),
+      capabilities: this.client.getServerCapabilities() as Record<string, unknown> | undefined,
+      instructions: this.client.getInstructions(),
+    };
+  }
+
+  /**
+   * List all tools the server exposes with schemas.
+   */
+  async listTools(): Promise<{ tools: unknown[] }> {
+    const client = await this.connect();
+    return client.listTools();
+  }
+
+  /**
+   * Call a tool and return the raw CallToolResult (no XML parsing, no JSON unwrapping).
+   * Includes 401-retry logic mirroring callTool().
+   */
+  async callToolRaw(
+    name: string,
+    args: Record<string, unknown> = {},
+    timeoutMs: number = TIMEOUT_GET,
+  ): Promise<unknown> {
+    const client = await this.connect();
+
+    try {
+      return await client.callTool(
+        { name, arguments: args },
+        undefined,
+        { timeout: timeoutMs },
+      );
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        const refreshed = await this.tryRefresh();
+        if (refreshed) {
+          await this.reconnect();
+          const retryClient = await this.connect();
+          return retryClient.callTool(
+            { name, arguments: args },
+            undefined,
+            { timeout: timeoutMs },
+          );
+        }
+        throw new AuthError("Session expired. Run: spoon auth login");
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * List resources the server exposes.
+   */
+  async listResources(): Promise<{ resources: unknown[] }> {
+    const client = await this.connect();
+    return client.listResources();
+  }
+
+  /**
+   * List resource templates the server exposes.
+   */
+  async listResourceTemplates(): Promise<{ resourceTemplates: unknown[] }> {
+    const client = await this.connect();
+    return client.listResourceTemplates();
+  }
+
+  /**
+   * List prompts the server exposes.
+   */
+  async listPrompts(): Promise<{ prompts: unknown[] }> {
+    const client = await this.connect();
+    return client.listPrompts();
+  }
+
   // --- High-level tool wrappers ---
 
   /**

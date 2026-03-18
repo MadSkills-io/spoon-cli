@@ -4,6 +4,7 @@ import { registerAuthCommand } from "./commands/auth.js";
 import { registerMeetingsCommand } from "./commands/meetings.js";
 import { registerQueryCommand } from "./commands/query.js";
 import { registerSyncCommand } from "./commands/sync.js";
+import { registerMcpCommand } from "./commands/mcp.js";
 import { loadConfig, getConfigPath } from "./utils/config.js";
 import { getGranolaDir } from "./auth/token-store.js";
 import { output, resolveFormat } from "./output/formatter.js";
@@ -47,6 +48,7 @@ registerAuthCommand(program);
 registerMeetingsCommand(program);
 registerQueryCommand(program);
 registerSyncCommand(program);
+registerMcpCommand(program);
 
 // --- config command ---
 program

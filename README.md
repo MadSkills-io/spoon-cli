@@ -199,6 +199,37 @@ Meeting files contain YAML front-matter (id, title, date, attendees, folders) fo
 
 Sync state is persisted at `~/.spoon/sync-state.json` — running `sync` again only fetches new meetings.
 
+### `spoon mcp`
+
+Inspect and interact with the MCP server directly. Power-user commands for protocol-level introspection.
+
+```bash
+# Health check — measure round-trip latency
+spoon mcp ping
+
+# Server version, capabilities, and instructions
+spoon mcp info
+spoon mcp info --format json
+
+# List all available tools with schemas
+spoon mcp tools
+spoon mcp tools --format json
+
+# Call any tool by name with raw JSON arguments
+spoon mcp call list_meetings '{"time_range":"this_week"}'
+spoon mcp call list_meetings '{"time_range":"this_week"}' --format json
+spoon mcp call get_meeting_transcript '{"meeting_id":"abc123"}'
+
+# Pipe JSON args from stdin
+echo '{"time_range":"this_week"}' | spoon mcp call list_meetings
+
+# List resources and prompts (gracefully handles unsupported)
+spoon mcp resources
+spoon mcp prompts
+```
+
+The `call` subcommand returns raw server output — no XML parsing or JSON unwrapping — so you see exactly what the MCP server returns.
+
 ### `spoon config`
 
 Show the current configuration and file paths.

@@ -57,6 +57,12 @@ spoon meetings transcript <id> [--format]
 spoon query "<question>" [--format]
 spoon sync <output-dir> [--since] [--force] [--transcripts] [--no-private] [--batch-size] [--delay] [--dry-run] [--format]
   # --transcripts is OPT-IN: API allows ~2 calls per ~7 min window
+spoon mcp ping [--format]
+spoon mcp info [--format]
+spoon mcp tools [--format]
+spoon mcp call <tool> [json] [--format]
+spoon mcp resources [--format]
+spoon mcp prompts [--format]
 spoon config [--format]
 ```
 
@@ -72,6 +78,7 @@ spoon config [--format]
 - `src/commands/auth.ts` — auth command
 - `src/commands/meetings.ts` — meetings list/get/transcript commands
 - `src/commands/query.ts` — query command
+- `src/commands/mcp.ts` — mcp command group (ping, info, tools, call, resources, prompts) — protocol-level MCP server introspection
 - `src/commands/sync.ts` — sync command (progress bar, batching, wall-clock throttle, retry, state)
 - `src/sync/state.ts` — load/save `~/.spoon/sync-state.json`
 - `src/sync/writer.ts` — slugify, getMeetingDir, writeMeetingFile, writeTranscriptFileFromText; filenames use `YYYY-MM-DD-slug-SHORTID` (last 8 chars of meeting ID) to prevent clobbering when same-named meetings occur on the same day
